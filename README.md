@@ -1,2 +1,3 @@
 # xAI-javascript-rlhf
-xAI JavaScript RLHF Tasks
+Repo for storing xAI JavaScript RLHF Tasks
+
