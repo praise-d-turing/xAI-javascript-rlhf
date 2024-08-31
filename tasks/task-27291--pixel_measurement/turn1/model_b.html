@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Pixel Measurement Widget</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css">
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+        }
+        #screenDimensions {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 5px 10px;
+            font-family: Arial, sans-serif;
+            font-size: 12px;
+            opacity: 0.7;
+        }
+        #screenDimensions:hover {
+            display: none;
+        }
+        #measureBox {
+            position: absolute;
+            border: 2px dashed #000;
+            background-color: rgba(0, 0, 255, 0.1);
+            cursor: move;
+        }
+        .guideLine {
+            position: absolute;
+            background: rgba(255, 0, 0, 0.3);
+        }
+        .dimensionLabel {
+            position: absolute;
+            background: white;
+            border: 1px solid black;
+            font-size: 10px;
+            padding: 2px;
+        }
+    </style>
+</head>
+<body>
+
+<div id="screenDimensions"></div>
+<div id="measureBox"></div>
+
+<script>
+document.addEventListener('DOMContentLoaded', (event) => {
+    const measureBox = document.getElementById('measureBox');
+    const screenDim = document.getElementById('screenDimensions');
+    let isDragging = false;
+    let offsetX, offsetY;
+
+    // Function to update screen dimensions
+    function updateScreenDimensions() {
+        screenDim.textContent = `${window.innerWidth} x ${window.innerHeight}`;
+    }
+    updateScreenDimensions();
+
+    // Resizing functionality
+    function makeResizableDiv(div) {
+        const resizers = document.createElement('div');
+        resizers.style.cssText = 'width: 10px; height: 10px; background: black; position: absolute; right: 0; bottom: 0; cursor: se-resize;';
+        div.appendChild(resizers);
+
+        let currentResizer;
+        resizers.addEventListener('mousedown', function(e) {
+            e.preventDefault();
+            currentResizer = e.target;
+            isDragging = true;
+            offsetX = e.clientX - div.offsetWidth;
+            offsetY = e.clientY - div.offsetHeight;
+        });
+    }
+
+    makeResizableDiv(measureBox);
+
+    // Dragging functionality
+    measureBox.addEventListener('mousedown', function(e) {
+        isDragging = true;
+        offsetX = e.clientX - measureBox.offsetLeft;
+        offsetY = e.clientY - measureBox.offsetTop;
+    });
+
+    document.addEventListener('mousemove', function(e) {
+        if (isDragging) {
+            if (currentResizer) {
+                measureBox.style.width = (e.clientX - offsetX) + 'px';
+                measureBox.style.height = (e.clientY - offsetY) + 'px';
+            } else {
+                measureBox.style.left = (e.clientX - offsetX) + 'px';
+                measureBox.style.top = (e.clientY - offsetY) + 'px';
+            }
+            updateGuideLines();
+        }
+    });
+
+    document.addEventListener('mouseup', function() {
+        isDragging = false;
+        currentResizer = null;
+    });
+
+    // Guide lines and measurements
+    function updateGuideLines() {
+        const lines = ['top', 'right', 'bottom', 'left'];
+        lines.forEach(side => {
+            const line = document.getElementById(`line-${side}`);
+            const label = document.getElementById(`label-${side}`);
+            const boxRect = measureBox.getBoundingClientRect();
+            let pos, length;
+
+            switch(side) {
+                case 'top':
+                    pos = boxRect.top; length = boxRect.left + boxRect.width/2;
+                    break;
+                case 'right':
+                    pos = boxRect.right; length = window.innerWidth - boxRect.right;
+                    break;
+                case 'bottom':
+                    pos = boxRect.bottom; length = window.innerHeight - boxRect.bottom;
+                    break;
+                case 'left':
+                    pos = boxRect.left; length = boxRect.left + boxRect.width/2;
+                    break;
+            }
+
+            if(line) {
+                line.style[side] = `${pos}px`;
+                line.style[side === 'top' || side === 'bottom' ? 'width' : 'height'] = `${length}px`;
+                if(label) {
+                    label.style[side] = `${pos}px`;
+                    label.textContent = length;
+                }
+            }
+        });
+    }
+
+    // Initial setup for guide lines
+    ['top', 'right', 'bottom', 'left'].forEach(side => {
+        let line = document.createElement('div');
+        line.className = 'guideLine';
+        line.id = `line-${side}`;
+        document.body.appendChild(line);
+
+        let label = document.createElement('div');
+        label.className = 'dimensionLabel';
+        label.id = `label-${side}`;
+        document.body.appendChild(label);
+    });
+
+    // Initial call to set up everything
+    updateGuideLines();
+    window.addEventListener('resize', updateScreenDimensions);
+});
+</script>
+
+</body>
+</html>
