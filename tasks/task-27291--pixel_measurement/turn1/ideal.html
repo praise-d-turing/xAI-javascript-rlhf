@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pixel Measurement Widget</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto&display=swap">
+    <style>
+        html,
+        body {
+            height: 100%;
+        }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            margin: 0;
+            padding: 0;
+            cursor: crosshair;
+        }
+
+        #full-dimensions {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.5);
+            color: #fff;
+            padding: 5px;
+            border-radius: 5px;
+            z-index: 1000;
+            opacity: 1;
+            transition: opacity 0.3s;
+        }
+
+        #full-dimensions:hover {
+            opacity: 0;
+        }
+
+        #measurement-values {
+            position: absolute;
+            right: 10px;
+            top: 10px;
+            width: 100px;
+            background-color: #b6d9fd;
+        }
+
+        .measurement-container {
+            position: absolute;
+            border: 1px dashed #000;
+            pointer-events: none;
+            z-index: 999;
+        }
+
+        .arrow {
+            --arrow-head-size: 4px;
+            position: absolute;
+            background-color: #000;
+            height: 1px;
+            width: 1px;
+        }
+
+        .arrow-inner {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            height: 100%;
+        }
+
+        .arrow-line-width {
+            color: white;
+            background-color: black;
+            height: fit-content;
+        }
+
+        .dimension-display {
+            position: absolute;
+            font-size: var(--arrow-head-size);
+            background: #000;
+            color: #fff;
+            padding: 2px;
+            border-radius: 2px;
+        }
+
+        .has-arrow-head::before,
+        .has-arrow-head::after {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 0;
+            border: var(--arrow-head-size) solid transparent;
+        }
+
+        .arrow_head--horizontal::before {
+            left: calc(-1 * var(--arrow-head-size));
+            border-right-color: #000;
+        }
+
+        .arrow_head--horizontal::after {
+            right: calc(-1 * var(--arrow-head-size));
+            border-left-color: #000;
+        }
+
+        .arrow_head--horizontal::before,
+        .arrow_head--horizontal::after {
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        .arrow_head--vertical::before,
+        .arrow_head--vertical::after {
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .arrow_head--vertical::before {
+            top: calc(-1 * var(--arrow-head-size));
+            border-bottom-color: #000;
+        }
+
+        .arrow_head--vertical::after {
+            bottom: calc(-1 * var(--arrow-head-size));
+            border-top-color: #000;
+        }
+
+    </style>
+</head>
+
+<body>
+    <button style="margin: 3em;">Click me to measure!</button>
+    <div id="measurement-widget" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; user-select: none;">
+        <div id="full-dimensions"></div>
+        <div class="measurement-container"></div>
+        <div class="arrow" id="top-arrow">
+            <div class="arrow-inner has-arrow-head arrow_head--vertical"><span class="arrow-line-width"></span></div>
+        </div>
+        <div class="arrow" id="right-arrow">
+            <div class="arrow-inner has-arrow-head arrow_head--horizontal"><span class="arrow-line-width"></span></div>
+        </div>
+        <div class="arrow" id="bottom-arrow">
+            <div class="arrow-inner has-arrow-head arrow_head--vertical"><span class="arrow-line-width"></span></div>
+        </div>
+        <div class="arrow" id="left-arrow">
+            <div class="arrow-inner has-arrow-head arrow_head--horizontal"><span class="arrow-line-width"></span></div>
+        </div>
+    </div>
+
+
+    <div id="measurement-values"></div>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script>
+        $(document).ready(function () {
+            const $fullDimensions = $('#full-dimensions');
+            const $measurementContainer = $('.measurement-container');
+            const $arrows = $('.arrow');
+            let startX, startY, endX, endY, isDragging = false;
+
+            function updateFullDimensions() {
+                $fullDimensions.text(`Screen: ${window.innerWidth}x${window.innerHeight}`);
+            }
+
+            function startDrag(event) {
+                startX = event.clientX;
+                startY = event.clientY;
+                isDragging = true;
+            }
+
+            function stopDrag(e) {
+                e.preventDefault();
+                console.log('stopping drag');
+                isDragging = false;
+                // Restore the onclick handler that was removed in `updateDrag`
+                setTimeout(() => $(document).on('click', measureElement));
+            }
+
+            function updateDrag(event) {
+                if (isDragging) {
+                    endX = event.clientX;
+                    endY = event.clientY;
+                    updateMeasurement();
+                    // A click event (which will trigger `measureElement`) will be triggered
+                    // after the dragging ends due to the `mousedown` -> `mouseup` sequence.
+                    // This prevents that from happening.
+                    $(document).off('click', measureElement);
+                }
+            }
+
+            function updateMeasurement() {
+                const width = Math.abs(endX - startX);
+                const height = Math.abs(endY - startY);
+                const posX = Math.min(startX, endX);
+                const posY = Math.min(startY, endY);
+
+                $('#measurement-values').html(`
+                    <b>w</b>: ${width}px<br/>
+                    <b>h</b>: ${height}px<br/>
+                `);
+
+                $measurementContainer.css({
+                    top: `${posY}px`,
+                    left: `${posX}px`,
+                    width: `${width}px`,
+                    height: `${height}px`
+                });
+
+                updateArrows();
+            }
+
+            function updateArrows() {
+                const positionArrow = ($arrow, position) => {
+                    const measurementContainerBBox = $measurementContainer[0].getBoundingClientRect();
+                    let axisLength;
+                    switch (position) {
+                        case 'top': {
+                            axisLength = measurementContainerBBox.top;
+                            $arrow.css({
+                                left: `${measurementContainerBBox.left + measurementContainerBBox.width * 0.5}px`,
+                                height: `${axisLength}px`,
+                                top: 0,
+                            });
+                            break;
+                        }
+                        case 'bottom': {
+                            axisLength = window.innerHeight - measurementContainerBBox.bottom;
+                            $arrow.css({
+                                left: `${measurementContainerBBox.left + measurementContainerBBox.width * 0.5}px`,
+                                height: `${axisLength}px`,
+                                bottom: 0,
+                            });
+                            break;
+                        }
+                        case 'left': {
+                            axisLength = measurementContainerBBox.left;
+                            $arrow.css({
+                                top: `${measurementContainerBBox.top + measurementContainerBBox.height * 0.5}px`,
+                                width: `${axisLength}px`,
+                                left: 0,
+                            });
+                            break;
+                        }
+                        case 'right': {
+                            axisLength = window.innerWidth - measurementContainerBBox.right
+                            $arrow.css({
+                                top: `${measurementContainerBBox.top + measurementContainerBBox.height * 0.5}px`,
+                                width: `${axisLength}px`,
+                                right: 0,
+                            });
+                            break;
+                        }
+                    }
+                    $arrow.find('.arrow-line-width').text(`${axisLength}px`);
+                };
+
+                $('.arrow').each((i, el) => {
+                    positionArrow($(el), el.id.split('-')[0])
+                })
+            }
+
+            function measureElement(e) {
+                console.log('e.target', e.target)
+                if (! e.target.closest('#measurement-widget'))
+                    return;
+                $('#measurement-widget').hide();
+                {
+                    const el = document.elementFromPoint(e.clientX, e.clientY);
+                    console.log('el', el)
+                    if (!el)
+                        return;
+
+                    const elBBox = el.getBoundingClientRect();
+                    startX = elBBox.x;
+                    startY = elBBox.y;
+                    endX = elBBox.right;
+                    endY = elBBox.bottom;
+                }
+                $('#measurement-widget').show();
+                updateMeasurement();
+            };
+
+            updateFullDimensions();
+
+            $(document).on('mousedown', startDrag)
+                .on('mousemove', updateDrag)
+                .on('mouseup', stopDrag)
+                .on('click', measureElement)
+        });
+    </script>
+</body>
+
+</html>
