@@ -13,10 +13,10 @@
         }
 
         body {
+            --box-handle-size: 10px;
             font-family: 'Roboto', sans-serif;
             margin: 0;
             padding: 0;
-            cursor: crosshair;
         }
 
         #full-dimensions {
@@ -36,6 +36,11 @@
             opacity: 0;
         }
 
+        #measurement-widget {
+            cursor: crosshair;
+            user-select: none;
+        }
+
         #measurement-values {
             position: absolute;
             right: 10px;
@@ -47,7 +52,6 @@
         .measurement-container {
             position: absolute;
             border: 1px dashed #000;
-            pointer-events: none;
             z-index: 999;
         }
 
@@ -123,6 +127,63 @@
             border-top-color: #000;
         }
 
+        .box-handle {
+            opacity: 0.4;
+            position: absolute;
+            border-radius: 50%;
+            width: var(--box-handle-size);
+            height: var(--box-handle-size);
+            border: 2px solid lightblue;
+            background-color: white;
+            cursor: pointer;
+        }
+        .box-handle:hover {
+            opacity: 1;
+        }
+
+        .box-handle[class*="top-"] {
+            top: 0;
+        }
+        .box-handle[class*="bottom-"] {
+            bottom: 0;
+        }
+        .box-handle[class*="middle-"] {
+            top: 50%;
+        }
+        .box-handle[class*="-left-handle"] {
+            left: 0;
+        }
+        .box-handle[class*="-right-handle"] {
+            right: 0;
+        }
+        .box-handle[class*="-center-handle"] {
+            left: 50%;
+        }
+        .top-left-handle {
+            transform: translate(-50%, -50%);
+        }
+        .top-center-handle {
+            transform: translate(-50%, -50%);
+        }
+        .top-right-handle {
+            transform: translate(50%, -50%);
+        }
+        .middle-left-handle {
+            transform: translate(-50%, -50%);
+        }
+        .middle-right-handle {
+            transform: translate(50%, -50%);
+        }
+        .bottom-left-handle {
+            transform: translate(-50%, 50%);
+        }
+        .bottom-center-handle {
+            transform: translate(-50%, 50%);
+        }
+        .bottom-right-handle {
+            transform: translate(50%, 50%);
+        }
+
     </style>
 </head>
 
@@ -130,7 +191,16 @@
     <button style="margin: 3em;">Click me to measure!</button>
     <div id="measurement-widget" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; user-select: none;">
         <div id="full-dimensions"></div>
-        <div class="measurement-container"></div>
+        <div class="measurement-container">
+            <div class="box-handle top-left-handle"></div>
+            <div class="box-handle top-center-handle"></div>
+            <div class="box-handle top-right-handle"></div>
+            <div class="box-handle middle-left-handle"></div>
+            <div class="box-handle middle-right-handle"></div>
+            <div class="box-handle bottom-left-handle"></div>
+            <div class="box-handle bottom-center-handle"></div>
+            <div class="box-handle bottom-right-handle"></div>
+        </div>
         <div class="arrow" id="top-arrow">
             <div class="arrow-inner has-arrow-head arrow_head--vertical"><span class="arrow-line-width"></span></div>
         </div>
@@ -257,10 +327,25 @@
                 })
             }
 
+            function isInteractibleWidget(e) {
+                const interactibleWidgetSelectors = [
+                    '.box-handle',
+                ];
+                return !!ineractibleWidgetSelectors.find(s => e.target.closest(s));
+            }
+
             function measureElement(e) {
+                const interactibleWidgetSelectors = [
+                    '.box-handle',
+                ];
                 console.log('e.target', e.target)
-                if (! e.target.closest('#measurement-widget'))
+                if (
+                    // Watch out for widget elements that are interactible
+                    interactibleWidgetSelectors.find(s => e.target.closest(s))
+                    || ! e.target.closest('#measurement-widget')
+                ) {
                     return;
+                }
                 $('#measurement-widget').hide();
                 {
                     const el = document.elementFromPoint(e.clientX, e.clientY);
@@ -284,6 +369,10 @@
                 .on('mousemove', updateDrag)
                 .on('mouseup', stopDrag)
                 .on('click', measureElement)
+
+            $('.box-handle').on('mousedown', e => {
+                console.log('dragstart');
+            })
         });
     </script>
 </body>
