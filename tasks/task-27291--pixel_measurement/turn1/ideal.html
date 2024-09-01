@@ -224,6 +224,7 @@
             const $fullDimensions = $('#full-dimensions');
             const $measurementContainer = $('.measurement-container');
             const $arrows = $('.arrow');
+            const measureElementBlockers = new Set;
             let startX, startY, endX, endY, isDragging = false;
 
             function updateFullDimensions() {
@@ -231,6 +232,8 @@
             }
 
             function startDrag(event) {
+                if (isInteractibleWidget(event))
+                    return;
                 startX = event.clientX;
                 startY = event.clientY;
                 isDragging = true;
@@ -241,7 +244,10 @@
                 console.log('stopping drag');
                 isDragging = false;
                 // Restore the onclick handler that was removed in `updateDrag`
-                setTimeout(() => $(document).on('click', measureElement));
+                // setTimeout(() => $(document).on('click', measureElement));
+                setTimeout(() => {
+                    measureElementBlockers.delete(Symbol.for('creating_selection_area'))
+                });
             }
 
             function updateDrag(event) {
@@ -249,10 +255,11 @@
                     endX = event.clientX;
                     endY = event.clientY;
                     updateMeasurement();
+                    measureElementBlockers.add(Symbol.for('creating_selection_area'));
                     // A click event (which will trigger `measureElement`) will be triggered
                     // after the dragging ends due to the `mousedown` -> `mouseup` sequence.
                     // This prevents that from happening.
-                    $(document).off('click', measureElement);
+                    // $(document).off('click', measureElement);
                 }
             }
 
@@ -327,21 +334,21 @@
                 })
             }
 
+            /**
+             * Determines if an event occurred on an interactible widget
+             * @param {Event} The event object
+             */
             function isInteractibleWidget(e) {
                 const interactibleWidgetSelectors = [
                     '.box-handle',
                 ];
-                return !!ineractibleWidgetSelectors.find(s => e.target.closest(s));
+                return !!interactibleWidgetSelectors.find(s => e.target.closest(s));
             }
 
             function measureElement(e) {
-                const interactibleWidgetSelectors = [
-                    '.box-handle',
-                ];
                 console.log('e.target', e.target)
                 if (
-                    // Watch out for widget elements that are interactible
-                    interactibleWidgetSelectors.find(s => e.target.closest(s))
+                    measureElementBlockers.size
                     || ! e.target.closest('#measurement-widget')
                 ) {
                     return;
@@ -370,9 +377,16 @@
                 .on('mouseup', stopDrag)
                 .on('click', measureElement)
 
-            $('.box-handle').on('mousedown', e => {
-                console.log('dragstart');
-            })
+            $('.box-handle')
+                .on('mousedown', e => {
+                    measureElementBlockers.add(Symbol.for('box-handle-drag'))
+                    console.log('dragstart');
+                })
+                .on('mouseup', () => {
+                    console.log('box-handle mouseup')
+                    measureElementBlockers.delete(Symbol.for('box-handle-drag'))
+                    // setTimeout(() => $(document).click(measureElement));
+                })
         });
     </script>
 </body>
