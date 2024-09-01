@@ -192,14 +192,14 @@
     <div id="measurement-widget" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; user-select: none;">
         <div id="full-dimensions"></div>
         <div class="measurement-container">
-            <div class="box-handle top-left-handle"></div>
-            <div class="box-handle top-center-handle"></div>
-            <div class="box-handle top-right-handle"></div>
-            <div class="box-handle middle-left-handle"></div>
-            <div class="box-handle middle-right-handle"></div>
-            <div class="box-handle bottom-left-handle"></div>
-            <div class="box-handle bottom-center-handle"></div>
-            <div class="box-handle bottom-right-handle"></div>
+            <div class="box-handle top-left-handle" data-resize-axis="x,y" data-handle-direction="top,left"></div>
+            <div class="box-handle top-center-handle" data-resize-axis="y" data-handle-direction="top"></div>
+            <div class="box-handle top-right-handle" data-resize-axis="x,y" data-handle-direction="top,right"></div>
+            <div class="box-handle middle-left-handle" data-resize-axis="x" data-handle-direction="left"></div>
+            <div class="box-handle middle-right-handle" data-resize-axis="x" data-handle-direction="right"></div>
+            <div class="box-handle bottom-left-handle" data-resize-axis="x,y" data-handle-direction="bottom,left"></div>
+            <div class="box-handle bottom-center-handle" data-resize-axis="y" data-handle-direction="bottom"></div>
+            <div class="box-handle bottom-right-handle" data-resize-axis="x,y" data-handle-direction="bottom,right"></div>
         </div>
         <div class="arrow" id="top-arrow">
             <div class="arrow-inner has-arrow-head arrow_head--vertical"><span class="arrow-line-width"></span></div>
@@ -244,7 +244,6 @@
                 console.log('stopping drag');
                 isDragging = false;
                 // Restore the onclick handler that was removed in `updateDrag`
-                // setTimeout(() => $(document).on('click', measureElement));
                 setTimeout(() => {
                     measureElementBlockers.delete(Symbol.for('creating_selection_area'))
                 });
@@ -255,11 +254,10 @@
                     endX = event.clientX;
                     endY = event.clientY;
                     updateMeasurement();
-                    measureElementBlockers.add(Symbol.for('creating_selection_area'));
                     // A click event (which will trigger `measureElement`) will be triggered
                     // after the dragging ends due to the `mousedown` -> `mouseup` sequence.
                     // This prevents that from happening.
-                    // $(document).off('click', measureElement);
+                    measureElementBlockers.add(Symbol.for('creating_selection_area'));
                 }
             }
 
@@ -269,11 +267,6 @@
                 const posX = Math.min(startX, endX);
                 const posY = Math.min(startY, endY);
 
-                $('#measurement-values').html(`
-                    <b>w</b>: ${width}px<br/>
-                    <b>h</b>: ${height}px<br/>
-                `);
-
                 $measurementContainer.css({
                     top: `${posY}px`,
                     left: `${posX}px`,
@@ -281,7 +274,17 @@
                     height: `${height}px`
                 });
 
+                displayMeasurementAreaDimensions();
+
                 updateArrows();
+            }
+
+            function displayMeasurementAreaDimensions() {
+                const measurementContainerBBox = $measurementContainer[0].getBoundingClientRect();
+                $('#measurement-values').html(`
+                    <b>w</b>: ${$measurementContainer.width()}px<br/>
+                    <b>h</b>: ${$measurementContainer.height()}px<br/>
+                `);
             }
 
             function updateArrows() {
@@ -377,16 +380,91 @@
                 .on('mouseup', stopDrag)
                 .on('click', measureElement)
 
+
+            let boxHandleData = {
+                dragStartX: null,
+                dragStartY: null,
+                dragEndX: null,
+                dragEndY: null,
+                resizeX: false,
+                resizeY: false,
+                initialWidth: 0,
+                initialHeight: 0,
+                initialLeft: 0,
+                initialTop: 0,
+                handleDirection: '', // Store the handle direction (e.g., 'left', 'right', 'top', 'bottom')
+            };
+
+            function dragBoxHandle(e) {
+                boxHandleData.dragEndX = e.clientX;
+                boxHandleData.dragEndY = e.clientY;
+
+                const widthDelta = (boxHandleData.dragEndX - boxHandleData.dragStartX);
+                const heightDelta = (boxHandleData.dragEndY - boxHandleData.dragStartY);
+
+                // Handle horizontal resizing
+                if (boxHandleData.resizeX) {
+                    if (boxHandleData.handleDirection.includes('left')) {
+                        const newWidth = boxHandleData.initialWidth - widthDelta;
+                        const newLeft = boxHandleData.initialLeft + widthDelta;
+                        if (newWidth > 0) {
+                            $measurementContainer.css({
+                                width: `${newWidth}px`,
+                                left: `${newLeft}px`
+                            });
+                        }
+                    } else if (boxHandleData.handleDirection.includes('right')) {
+                        const newWidth = boxHandleData.initialWidth + widthDelta;
+                        if (newWidth > 0) {
+                            $measurementContainer.css({width: `${newWidth}px`});
+                        }
+                    }
+                }
+
+                // Handle vertical resizing
+                if (boxHandleData.resizeY) {
+                    if (boxHandleData.handleDirection.includes('top')) {
+                        const newHeight = boxHandleData.initialHeight - heightDelta;
+                        const newTop = boxHandleData.initialTop + heightDelta;
+                        if (newHeight > 0) {
+                            $measurementContainer.css({
+                                height: `${newHeight}px`,
+                                top: `${newTop}px`
+                            });
+                        }
+                    } else if (boxHandleData.handleDirection.includes('bottom')) {
+                        const newHeight = boxHandleData.initialHeight + heightDelta;
+                        if (newHeight > 0) {
+                            $measurementContainer.css({height: `${newHeight}px`});
+                        }
+                    }
+                }
+                updateArrows();
+                displayMeasurementAreaDimensions();
+            }
+
             $('.box-handle')
                 .on('mousedown', e => {
-                    measureElementBlockers.add(Symbol.for('box-handle-drag'))
-                    console.log('dragstart');
+                    measureElementBlockers.add(Symbol.for('box-handle-drag'));
+                    boxHandleData.dragStartX = e.clientX;
+                    boxHandleData.dragStartY = e.clientY;
+                    boxHandleData.initialWidth = $measurementContainer.width();
+                    boxHandleData.initialHeight = $measurementContainer.height();
+                    boxHandleData.initialLeft = $measurementContainer.offset().left;
+                    boxHandleData.initialTop = $measurementContainer.offset().top;
+
+                    const resizeAxis = e.target.dataset.resizeAxis.split(',');
+                    boxHandleData.resizeX = resizeAxis.includes('x');
+                    boxHandleData.resizeY = resizeAxis.includes('y');
+                    boxHandleData.handleDirection = e.target.dataset.handleDirection.split(','); // Get the handle direction
+
+                    $(document).mousemove(dragBoxHandle);
                 })
                 .on('mouseup', () => {
-                    console.log('box-handle mouseup')
-                    measureElementBlockers.delete(Symbol.for('box-handle-drag'))
-                    // setTimeout(() => $(document).click(measureElement));
-                })
+                    $(document).off('mousemove', dragBoxHandle);
+                    setTimeout(() => measureElementBlockers.delete(Symbol.for('box-handle-drag')));
+                });
+            
         });
     </script>
 </body>
