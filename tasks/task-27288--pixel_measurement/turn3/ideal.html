@@ -331,8 +331,7 @@
                     .on('click', measureElement)
 
                 $('.box-handle')
-                    .on('mousedown', handleBoxHandleMouseDown)
-                    .on('mouseup', handleBoxHandleMouseUp);
+                    .on('mousedown', handleBoxHandleMouseDown);
 
                 $('#measurement-widget').show();
                 widgetActivated = true;
@@ -569,11 +568,15 @@
                 boxHandleData.resizeY = resizeAxis.includes('y');
                 boxHandleData.handleDirection = e.target.dataset.handleDirection.split(','); // Get the handle direction
 
-                $(document).mousemove(dragBoxHandle);
+                $(document)
+                    .mousemove(dragBoxHandle)
+                    .mouseup(handleBoxHandleMouseUp);
             }
 
             function handleBoxHandleMouseUp(e) {
-                $(document).off('mousemove', dragBoxHandle);
+                $(document)
+                    .off('mousemove', dragBoxHandle)
+                    .off('mouseup', handleBoxHandleMouseUp);
                 setTimeout(() => measureElementBlockers.delete(Symbol.for('box-handle-drag')));
             }
         });
