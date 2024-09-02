@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Memory Game</title>
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <style>
+        .card {
+            display: inline-block;
+            margin: 10px;
+            padding: 20px;
+            border: 1px solid #666;
+            cursor: pointer;
+            visibility: hidden; /* Cards are hidden by default */
+        }
+
+        #feedback {
+            font-size: 20px;
+            color: red;
+            visibility: hidden;
+        }
+
+        #levelUp {
+            font-size: 20px;
+            color: green;
+            visibility: hidden;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="game">
+        <button id="startButton">Start Game</button>
+        <div id="progress">Level: 1</div>
+        <div id="cards"></div>
+        <div id="feedback">Incorrect!</div>
+        <div id="levelUp">Level Up!</div>
+        <div>Lives: <span id="lives">3</span></div>
+    </div>
+
+    <script>
+        $(document).ready(function() {
+            let sequence = [];
+            let lives = 3;
+            let level = 1;
+            let currentIndex = 0;
+
+            $("#startButton").on("click", function() {
+                startLevel();
+            });
+
+            function startLevel() {
+                if (sequence.length === level) {
+                    sequence.push(randomLetter());
+                }
+                pronounceSequence();
+            }
+
+            function pronounceSequence() {
+                let i = 0;
+                function speakNext() {
+                    if (i < sequence.length) {
+                        let utterance = new SpeechSynthesisUtterance(sequence[i]);
+                        utterance.onend = function() {
+                            i++;
+                            if (i === sequence.length) {
+                                displayCards();
+                            } else {
+                                speakNext();
+                            }
+                        };
+                        window.speechSynthesis.speak(utterance);
+                    }
+                }
+                speakNext();
+            }
+
+            function displayCards() {
+                $("#cards").empty();
+                let correctLetter = sequence[currentIndex];
+                let options = shuffle([correctLetter, randomLetter(), randomLetter(), randomLetter()]);
+                options.forEach(letter => {
+                    $("#cards").append(`<div class="card">${letter}</div>`);
+                });
+                $('.card').css('visibility', 'visible');  // Show cards after pronunciation
+                
+                $('.card').on('click', function() {
+                    checkAnswer($(this).text());
+                });
+            }
+
+            function checkAnswer(clickedLetter) {
+                if (clickedLetter === sequence[currentIndex]) {
+                    currentIndex++;
+                    if(currentIndex >= sequence.length) {
+                        level++;
+                        currentIndex = 0;
+                        $("#levelUp").css('visibility', 'visible').fadeOut(1000, function() {
+                            $(this).css('visibility', 'hidden');
+                        });
+                        startLevel();
+                    } else {
+                        displayCards();
+                    }
+                } else {
+                    lives--;
+                    $("#feedback").css('visibility', 'visible').fadeOut(2000, function() {
+                        $(this).css('visibility', 'hidden');
+                    });
+                    $("#lives").text(lives);
+                    if (lives === 0) endGame();
+                }
+                $("#progress").text(`Level: ${level}`);
+            }
+
+            function endGame() {
+                alert(`Game Over! Your final level was: ${level}`);
+                location.reload();
+            }
+
+            function randomLetter() {
+                return String.fromCharCode(65 + Math.floor(Math.random() * 26));
+            }
+
+            function shuffle(array) {
+                for (let i = array.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [array[i], array[j]] = [array[j], array[i]];
+                }
+                return array;
+            }
+        });
+    </script>
+</body>
+
+</html>

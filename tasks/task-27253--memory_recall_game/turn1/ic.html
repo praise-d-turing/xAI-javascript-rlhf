@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Memory Game</title>
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <style>
+        .card {
+            display: inline-block;
+            margin: 10px;
+            padding: 20px;
+            border: 1px solid #666;
+            cursor: pointer;
+        }
+
+        .feedback {
+            font-size: 20px;
+            color: green;
+        }
+
+        .incorrect {
+            color: red;
+        }
+
+    </style>
+</head>
+
+<body>
+    <div id="game">
+        <button id="startButton">Start Game</button>
+        <div id="progress">Sequence: 1</div>
+        <div id="cards"></div>
+        <div id="feedback" class="feedback"></div>
+        <div>Lives: <span id="lives">3</span></div>
+    </div>
+
+    <script>
+        $(document).ready(function () {
+            let sequence = [];
+            let lives = 3;
+            let level = 1;
+
+            $("#startButton").on("click", function () {
+                startLevel();
+            });
+
+            function startLevel() {
+                sequence.push(randomLetter());
+                pronounceSequence();
+                displayCards();
+            }
+
+            function randomLetter() {
+                return String.fromCharCode(65 + Math.floor(Math.random() * 26));
+            }
+
+            function pronounceSequence() {
+                sequence.forEach(letter => {
+                    let utterance = new SpeechSynthesisUtterance(letter);
+                    window.speechSynthesis.speak(utterance);
+                });
+            }
+
+            function displayCards() {
+                let currentIndex = 0;
+
+                function validateLetter () {
+                    let correctLetter = sequence[currentIndex];
+                    let clickedLetter = $(this).text();
+                    if (clickedLetter === correctLetter) {
+                        $("#feedback").text("Correct!").removeClass("incorrect");
+                        nextSequence(++currentIndex);
+                        $("#progress").text(`Level: ${level}`);
+                    } else {
+                        lives--;
+                        $("#lives").text(lives);
+                        $("#feedback").text("Incorrect! Try again.").addClass("incorrect");
+                        if (lives === 0) endGame();
+                    }
+                }
+
+                const nextSequence = (currentIndex) => {
+                    if (currentIndex < sequence.length) { // Still in the current round
+                        displayCardsForSequenceIndex(currentIndex);
+                    } else { // Move to the next round
+                        level++;
+                        startLevel();
+                    }
+                }
+
+                const displayCardsForSequenceIndex = (index) => {
+                    let correctLetter = sequence[currentIndex];
+                    let options = shuffle([correctLetter, randomLetter(), randomLetter(), randomLetter()]);
+                    $("#cards").html(options.map(letter => `<div class="card">${letter}</div>`).join(''));
+                    $(".card").on("click", validateLetter);
+                }
+
+                displayCardsForSequenceIndex(currentIndex);
+            }
+
+            function endGame() {
+                alert("Game Over! Your final sequence length was: " + level);
+                location.reload();
+            }
+
+            function shuffle(array) {
+                for (let i = array.length - 1; i > 0; i--) {
+                    let j = Math.floor(Math.random() * (i + 1));
+                    [array[i], array[j]] = [array[j], array[i]];
+                }
+                return array;
+            }
+        });
+    </script>
+</body>
+
+</html>

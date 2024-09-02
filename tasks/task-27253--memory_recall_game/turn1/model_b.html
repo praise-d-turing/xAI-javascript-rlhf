@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Memory Game</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; }
+        #gameArea { margin-top: 50px; }
+        .letterCard { 
+            display: inline-block; 
+            width: 50px; 
+            height: 50px; 
+            line-height: 50px; 
+            margin: 5px; 
+            border: 1px solid #000; 
+            cursor: pointer; 
+            font-size: 20px;
+        }
+        .letterCard:hover { background-color: #f0f0f0; }
+        #lives { margin-top: 20px; color: red; }
+    </style>
+</head>
+<body>
+    <h1>Memory Game</h1>
+    <div id="gameArea"></div>
+    <div id="lives">Lives: 3</div>
+    
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+    $(document).ready(function() {
+        const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+        let sequence = [];
+        let lives = 3;
+        let currentIndex = 0;
+
+        function speak(text) {
+            if ('speechSynthesis' in window) {
+                let utterance = new SpeechSynthesisUtterance(text);
+                window.speechSynthesis.speak(utterance);
+            }
+        }
+
+        function newRound() {
+            if (sequence.length > 0) {
+                sequence.push(letters[Math.floor(Math.random() * letters.length)]);
+            } else {
+                sequence = [letters[Math.floor(Math.random() * letters.length)]];
+            }
+            currentIndex = 0;
+            console.log(`sequence: ${sequence}`);
+            displaySequence();
+        }
+
+        function displaySequence() {
+            let i = 0;
+            function showNext() {
+                if (i < sequence.length) {
+                    speak(sequence[i]);
+                    setTimeout(showNext, 1000);
+                    i++;
+                } else {
+                    showCards();
+                }
+            }
+            showNext();
+        }
+
+        function showCards() {
+            $('#gameArea').empty();
+            let shuffled = [...sequence.slice(0, currentIndex + 1), ...letters.filter(l => !sequence.includes(l)).slice(0, 3)].sort(() => Math.random() - 0.5);
+            shuffled.forEach(letter => {
+                let card = $('<div>').addClass('letterCard').text(letter).click(function() {
+                    if (letter === sequence[currentIndex]) {
+                        currentIndex++;
+                        if (currentIndex === sequence.length) {
+                            if (confirm("Correct! Do you remember the sequence?")) {
+                                verifySequence();
+                            } else {
+                                newRound();
+                            }
+                        } else {
+                            showCards();
+                        }
+                    } else {
+                        lives--;
+                        $('#lives').text('Lives: ' + lives);
+                        if (lives === 0) {
+                            alert('Game Over! Your sequence was: ' + sequence.join(''));
+                            location.reload();
+                        } else {
+                            showCards();
+                        }
+                    }
+                });
+                console.log(`appending card for letter ${letter}`);
+                $('#gameArea').append(card);
+            });
+        }
+
+        function verifySequence() {
+            let userSequence = prompt("Enter the sequence:").toUpperCase().split('');
+            if (JSON.stringify(userSequence) === JSON.stringify(sequence)) {
+                alert('Well done! Next round.');
+                newRound();
+            } else {
+                alert('Wrong! Try again.');
+                lives--;
+                if (lives > 0) {
+                    displaySequence();
+                } else {
+                    alert('Game Over! Your sequence was: ' + sequence.join(''));
+                    location.reload();
+                }
+            }
+        }
+
+        newRound();
+    });
+    </script>
+</body>
+</html>
