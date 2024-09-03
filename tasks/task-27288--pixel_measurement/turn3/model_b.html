@@ -245,7 +245,6 @@
 </head>
 
 <body>
-
     <button style="margin: 3em;">Click me to measure!</button>
     <div style="position: absolute; top: 150px; left: 50px; width: 200px; height: 100px; background: #ffcc00; text-align: center; line-height: 100px; font-size: 20px;">Box 1</div>
     <div style="position: absolute; top: 250px; right: 100px; width: 150px; height: 300px; background: #66ccff; border-radius: 15px; display: flex; justify-content: center; align-items: center; font-size: 18px;">Box 2</div>
@@ -253,7 +252,6 @@
     <img src="https://via.placeholder.com/300x200" alt="Sample Image" style="position: absolute; bottom: 50px; left: 50%; transform: translateX(-50%);">
 
     <div id="measurement-widget" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; user-select: none;">
-        <button id="toggleMeasurement">Toggle Measurement</button>
         <div id="full-dimensions"></div>
         <div class="measurement-container">
             <div class="box-handle top-left-handle" data-resize-axis="x,y" data-handle-direction="top,left"></div>
@@ -284,74 +282,65 @@
 
     <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
     <script>
-        "use strict";
         $(document).ready(function () {
+
+            let isMeasurementActive = false;
+            const $measurementWidget = $('#measurement-widget');
+            const $toggleButton = $('<button>', {
+                text: 'Toggle Measurement',
+                click: toggleMeasurement
+            }).css({
+                position: 'fixed',
+                top: '10px',
+                right: '10px',
+                zIndex: '1001'
+            });
+
+            $('body').append($toggleButton);
+
+            function toggleMeasurement() {
+                isMeasurementActive = !isMeasurementActive;
+                if (isMeasurementActive) {
+                    $measurementWidget.show();
+                    // Re-enable event listeners or initialize them here if they were removed
+                    enableEventListeners();
+                    $toggleButton.text('Disable Measurement');
+                } else {
+                    $measurementWidget.hide();
+                    // Disable or remove event listeners
+                    disableEventListeners();
+                    $toggleButton.text('Enable Measurement');
+                }
+            }
+
+            function enableEventListeners() {
+                $(document)
+                    .on('mousedown', startDrag)
+                    .on('mousemove', updateDrag)
+                    .on('mouseup', stopDrag)
+                    .on('click', measureElement);
+            }
+
+            function disableEventListeners() {
+                $(document)
+                    .off('mousedown', startDrag)
+                    .off('mousemove', updateDrag)
+                    .off('mouseup', stopDrag)
+                    .off('click', measureElement);
+            }
+
+            // Initial state
+            toggleMeasurement(); // This will hide the measurement tools and set up the button
+
             const $fullDimensions = $('#full-dimensions');
             const $measurementContainer = $('.measurement-container');
             const $arrows = $('.arrow');
-            const $toggleButton = $('#toggleMeasurement');
-            let isMeasurementActive = true;
-            let startX, startY, endX, endY, isDragging = false;
             const measureElementBlockers = new Set;
+            let startX, startY, endX, endY, isDragging = false;
 
             function updateFullDimensions() {
                 $fullDimensions.text(`Screen: ${window.innerWidth}x${window.innerHeight}`);
             }
-
-            function toggleMeasurement() {
-                if (isMeasurementActive) {
-                    deactivateMeasurement();
-                } else {
-                    activateMeasurement();
-                }
-            }
-
-            function activateMeasurement() {
-                isMeasurementActive = true;
-                $measurementContainer.show();
-                $arrows.show();
-                $fullDimensions.show();
-                $('#measurement-values').show();
-                // Re-enable event listeners here
-                $(document).on('mousedown', startDrag)
-                    .on('mousemove', updateDrag)
-                    .on('mouseup', stopDrag)
-                    .on('click', measureElement);
-                $toggleButton.text('Disable Measurement');
-            }
-
-            function deactivateMeasurement() {
-                isMeasurementActive = false;
-                $measurementContainer.hide();
-                $arrows.hide();
-                $fullDimensions.hide();
-                $('#measurement-values').hide();
-                // Remove event listeners
-                $(document).off('mousedown', startDrag)
-                    .off('mousemove', updateDrag)
-                    .off('mouseup', stopDrag)
-                    .off('click', measureElement);
-                $toggleButton.text('Enable Measurement');
-            }
-
-            // Your existing functions (startDrag, stopDrag, updateDrag, etc.) remain here with no changes.
-
-            // Initialize with measurement active
-            activateMeasurement();
-
-            // Toggle button click event
-            $toggleButton.on('click', toggleMeasurement);
-
-            // Initial update for screen dimensions
-            updateFullDimensions();
-
-            // Handle window resizing
-            $(window).on('resize', function() {
-                if (isMeasurementActive) {
-                    updateFullDimensions();
-                    updateArrows();
-                }
-            });
 
             function startDrag(event) {
                 if (isInteractibleWidget(event))
@@ -362,12 +351,15 @@
             }
 
             function stopDrag(e) {
-                e.preventDefault();
-                isDragging = false;
-                // Restore the onclick handler that was removed in `updateDrag`
-                setTimeout(() => {
-                    measureElementBlockers.delete(Symbol.for('creating_selection_area'))
-                });
+                if (isDragging || boxHandleData.dragStartX !== null) {
+                    e.preventDefault();
+                    isDragging = false;
+                    boxHandleData.dragStartX = null;
+                    boxHandleData.dragStartY = null;
+                    $(document).off('mousemove', dragBoxHandle);
+                    measureElementBlockers.delete(Symbol.for('creating_selection_area'));
+                    measureElementBlockers.delete(Symbol.for('box-handle-drag'));
+                }
             }
 
             function updateDrag(event) {
@@ -492,6 +484,8 @@
                 updateMeasurement();
             };
 
+            updateFullDimensions();
+
             $(document).on('mousedown', startDrag)
                 .on('mousemove', updateDrag)
                 .on('mouseup', stopDrag)
@@ -513,6 +507,11 @@
             };
 
             function dragBoxHandle(e) {
+                if (!e.buttons) { // If no mouse buttons are pressed
+                    stopDrag(e);
+                    return;
+                }
+
                 boxHandleData.dragEndX = e.clientX;
                 boxHandleData.dragEndY = e.clientY;
 
@@ -581,6 +580,7 @@
                     $(document).off('mousemove', dragBoxHandle);
                     setTimeout(() => measureElementBlockers.delete(Symbol.for('box-handle-drag')));
                 });
+            
         });
     </script>
 </body>
