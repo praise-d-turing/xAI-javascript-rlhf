@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Math Challenge</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css">
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            background: #f0f0f0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            color: #333;
+        }
+        .game-container {
+            background: #fff;
+            padding: 20px;
+            border: 5px solid #000;
+            box-shadow: 10px 10px 0 #000;
+            text-align: center;
+        }
+        .question, .answer-btn {
+            background: #f9f9f9;
+            margin: 10px 0;
+            padding: 15px;
+            border: 3px solid #000;
+            font-size: 18px;
+            cursor: pointer;
+        }
+        .answer-btn:hover {
+            background: #e0e0e0;
+        }
+        .timer {
+            font-weight: bold;
+            font-size: 1.2em;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.4);
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: 15% auto;
+            padding: 20px;
+            border: 5px solid #000;
+            width: 80%;
+            max-width: 500px;
+        }
+        .close, .reset {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .close:hover, .close:focus, .reset:hover, .reset:focus {
+            color: black;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1>Math Challenge</h1>
+        <div class="timer">Time: <span id="time">0</span>s</div>
+        <div id="question"></div>
+        <div id="answerButtons"></div>
+        <button onclick="startGame()">Start Game</button>
+        <button onclick="showLeaderboard()">Leaderboard</button>
+    </div>
+
+    <div id="leaderboardModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Leaderboard</h2>
+            <div id="leaderboard"></div>
+            <button onclick="confirmReset()" class="reset">Reset Leaderboard</button>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+    let timeLeft, timerInterval, currentScore = 0, difficulty = 'easy';
+    const operations = ['+', '-', '*', '/'];
+    
+    function generateQuestion() {
+        const num1 = Math.floor(Math.random() * 99) + 1;
+        const num2 = Math.floor(Math.random() * (num1 + (operations.includes('/') ? 0 : 1))) + 1;
+        const operation = operations[Math.floor(Math.random() * operations.length)];
+        let result;
+        switch(operation) {
+            case '+': result = num1 + num2; break;
+            case '-': result = num1 - num2; break;
+            case '*': result = num1 * num2; break;
+            case '/': result = Math.round(num1 / num2 * 100) / 100; break;
+        }
+        return { question: `${num1} ${operation} ${num2}`, answer: result };
+    }
+
+    function setTimer() {
+        timeLeft = difficulty === 'easy' ? 10 : (difficulty === 'medium' ? 7 : 3.5);
+        $('#time').text(timeLeft);
+        clearInterval(timerInterval);
+        timerInterval = setInterval(() => {
+            timeLeft -= 0.1;
+            $('#time').text(timeLeft.toFixed(1));
+            if (timeLeft <= 0) {
+                clearInterval(timerInterval);
+                gameOver();
+            }
+        }, 100);
+    }
+
+    function startGame() {
+        currentScore = 0;
+        setTimer();
+        nextQuestion();
+    }
+
+    function nextQuestion() {
+        const { question, answer } = generateQuestion();
+        $('#question').text(question);
+        let answers = [answer];
+        while(answers.length < 4) {
+            let fakeAnswer = answer + (Math.random() > 0.5 ? 1 : -1) * Math.floor(Math.random() * 10);
+            if (!answers.includes(fakeAnswer)) answers.push(fakeAnswer);
+        }
+        answers.sort(() => Math.random() - 0.5);
+        $('#answerButtons').html(answers.map(ans => `<button class="answer-btn" onclick="checkAnswer(${ans})">${ans}</button>`).join(''));
+    }
+
+    function checkAnswer(selected) {
+        const correctAnswer = parseFloat($('#question').text().split(' ').reduce((a, b) => isNaN(b) ? a : b));
+        if (selected === correctAnswer) {
+            currentScore++;
+            nextQuestion();
+        } else {
+            gameOver();
+        }
+    }
+
+    function gameOver() {
+        clearInterval(timerInterval);
+        let name = prompt('Game Over! Enter your name for the leaderboard:');
+        if(name) saveScore(name, currentScore);
+        alert('Your score: ' + currentScore);
+    }
+
+    function saveScore(name, score) {
+        let scores = JSON.parse(localStorage.getItem(`leaderboard_${difficulty}`) || '[]');
+        scores.push({name, score});
+        scores.sort((a, b) => b.score - a.score);
+        scores = scores.slice(0, 10); // Keep top 10
+        localStorage.setItem(`leaderboard_${difficulty}`, JSON.stringify(scores));
+    }
+
+    function showLeaderboard() {
+        let scores = JSON.parse(localStorage.getItem(`leaderboard_${difficulty}`) || '[]');
+        let leaderboardHtml = scores.map((entry, index) => `<p>${index + 1}. ${entry.name}: ${entry.score}</p>`).join('');
+        $('#leaderboard').html(leaderboardHtml);
+        $('#leaderboardModal').css('display', 'block');
+    }
+
+    $(document).on('click', '.close', function() {
+        $('#leaderboardModal').css('display', 'none');
+    });
+
+    function confirmReset() {
+        if(confirm('Are you sure you want to reset the leaderboard?')) {
+            localStorage.removeItem(`leaderboard_${difficulty}`);
+            showLeaderboard(); // Refresh leaderboard display
+        }
+    }
+
+    // Difficulty settings can be implemented here, e.g., selecting difficulty before starting
+    </script>
+</body>
+</html>
