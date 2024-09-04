@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Math Constants Memorizer</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/necolas/normalize.css/8.0.1/normalize.min.css">
+    <style>
+        /* CSS for neo-brutalism design */
+        body {
+            font-family: 'Arial', sans-serif;
+            background: #f0f0f0;
+            color: #333;
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container {
+            background: #fff;
+            border: 4px solid #000;
+            padding: 30px;
+            max-width: 600px;
+            box-shadow: 10px 10px 0 #000;
+        }
+        button {
+            background: #000;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        button:hover { background: #333; }
+        .game-area, .reference, .leaderboard {
+            display: none;
+        }
+        /* Additional styles for game elements, inputs, etc. */
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div id="home">
+        <h1>Math Constants Memorizer</h1>
+        <button onclick="startGame()">Start Game</button>
+        <button onclick="showLeaderboard()">Leaderboard</button>
+        <button onclick="showReference()">Reference</button>
+    </div>
+    
+    <div id="game" class="game-area">
+        <!-- Game UI elements here -->
+    </div>
+    
+    <div id="reference" class="reference">
+        <!-- List of constants here -->
+    </div>
+    
+    <div id="leaderboard" class="leaderboard">
+        <!-- Leaderboard data here -->
+    </div>
+</div>
+
+<script>
+    // Constants data
+    const constants = {
+        // Define your constants here with name and value
+    };
+
+    // Game logic, text-to-speech, UI handling, etc.
+    function startGame() {
+        // Game initialization logic
+        if ('speechSynthesis' in window) {
+            // Speech synthesis setup
+        }
+    }
+
+    function showReference() {
+        // Display reference page
+    }
+
+    function showLeaderboard() {
+        // Retrieve and display leaderboard
+        // Use localStorage to save and load scores
+    }
+
+    // Event listeners for navigation
+    document.querySelectorAll('button').forEach(button => {
+        button.addEventListener('click', function() {
+            document.querySelector('.game-area, .reference, .leaderboard').style.display = 'none';
+            document.getElementById(this.getAttribute('onclick').replace('show', '').toLowerCase()).style.display = 'block';
+        });
+    });
+
+    // Initialize game
+    (function() {
+        // Initial hide all sections except home
+        document.getElementById('game').style.display = 'none';
+        document.getElementById('reference').style.display = 'none';
+        document.getElementById('leaderboard').style.display = 'none';
+    })();
+</script>
+
+</body>
+</html>

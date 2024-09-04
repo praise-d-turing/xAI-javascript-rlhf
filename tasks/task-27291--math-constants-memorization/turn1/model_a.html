@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Math Constants Memorization Game</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            background-color: #f4f4f9;
+            color: #333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .neo-brutalism {
+            background: #fff;
+            padding: 20px;
+            border: 5px solid #333;
+            box-shadow: 10px 10px 0px #333;
+        }
+    </style>
+</head>
+<body>
+    <div id="app" class="container neo-brutalism">
+        <div id="home-screen" class="text-center">
+            <h1>Math Constants Game</h1>
+            <button onclick="startGame()" class="btn btn-primary">Start Game</button>
+            <button onclick="showLeaderboard()" class="btn btn-secondary">Leaderboard</button>
+            <button onclick="showReference()" class="btn btn-info">Reference</button>
+        </div>
+        <div id="game-screen" style="display: none;">
+            <h2 id="constant-name"></h2>
+            <p>Recited: <span id="recited-digits"></span></p>
+            <input type="text" id="user-input" placeholder="Enter digits">
+            <button onclick="checkInput()">Submit</button>
+            <p>Score: <span id="score">0</span></p>
+        </div>
+        <div id="leaderboard-screen" style="display: none;">
+            <h2>Leaderboard</h2>
+            <ol id="leaderboard-list"></ol>
+            <button onclick="returnHome()">Return Home</button>
+        </div>
+        <div id="reference-screen" style="display: none;">
+            <h2>Mathematical Constants</h2>
+            <ul id="constants-list"></ul>
+            <button onclick="returnHome()">Return Home</button>
+        </div>
+    </div>
+    <script>
+        const constants = [
+            { name: "π (Pi)", value: "3.14159265358979323846" },
+            { name: "e (Euler's Number)", value: "2.71828182845904523536" },
+            // Add all other constants here
+        ];
+
+        let currentConstant, currentDigits, score, level;
+
+        function startGame() {
+            currentConstant = getRandomConstant();
+            currentDigits = 3;
+            score = 0;
+            level = 1;
+            document.getElementById("home-screen").style.display = "none";
+            document.getElementById("game-screen").style.display = "block";
+            reciteDigits();
+        }
+
+        function getRandomConstant() {
+            return constants[Math.floor(Math.random() * constants.length)];
+        }
+
+        function reciteDigits() {
+            document.getElementById("constant-name").innerText = currentConstant.name;
+            document.getElementById("recited-digits").innerText = currentConstant.value.substring(0, currentDigits);
+        }
+
+        function checkInput() {
+            const userInput = document.getElementById("user-input").value;
+            const correctDigits = currentConstant.value.substring(0, currentDigits);
+            if (userInput === correctDigits) {
+                score += 1;
+                if (currentDigits < 20) {
+                    currentDigits++;
+                    reciteDigits();
+                } else {
+                    score += 50;
+                    currentConstant = getRandomConstant();
+                    currentDigits = 3;
+                    reciteDigits();
+                }
+            } else {
+                alert("Incorrect! Try again.");
+            }
+            document.getElementById("score").innerText = score;
+            document.getElementById("user-input").value = "";
+        }
+
+        function showLeaderboard() {
+            const leaderboard = JSON.parse(localStorage.getItem('leaderboard') || '[]');
+            leaderboard.sort((a, b) => b.score - a.score);
+            const leaderboardHTML = leaderboard.slice(0, 10).map((entry, index) => `<li>${index + 1}. ${entry.name}: ${entry.score}</li>`).join('');
+            document.getElementById("leaderboard-list").innerHTML = leaderboardHTML;
+            document.getElementById("home-screen").style.display = "none";
+            document.getElementById("leaderboard-screen").style.display = "block";
+        }
+
+        function showReference() {
+            const referenceHTML = constants.map(constant => `<li>${constant.name}: ${constant.value}</li>`).join('');
+            document.getElementById("constants-list").innerHTML = referenceHTML;
+            document.getElementById("home-screen").style.display = "none";
+            document.getElementById("reference-screen").style.display = "block";
+        }
+
+        function returnHome() {
+            document.getElementById("game-screen").style.display = "none";
+            document.getElementById("leaderboard-screen").style.display = "none";
+            document.getElementById("reference-screen").style.display = "none";
+            document.getElementById("home-screen").style.display = "block";
+        }
+
+        // Initialize leaderboard
+        if (!localStorage.getItem('leaderboard')) {
+            localStorage.setItem('leaderboard', JSON.stringify([]));
+        }
+    </script>
+</body>
+</html>
