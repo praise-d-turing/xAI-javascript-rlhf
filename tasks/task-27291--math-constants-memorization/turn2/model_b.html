@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Math Constants Memory Game</title>
+    <link href="https://cdn.jsdelivr.net/npm/reset-css@5.0.1/reset.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            background: #f0f0f0;
+            color: #333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            flex-direction: column;
+        }
+        h1,h2, strong {
+            font-weight: bold;
+        }
+        h1 {
+            font-size: 1.75em;
+        }
+        h2 {
+            font-size: 1.5em;
+        }
+        button {
+            background: #000;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            margin: 10px 0;
+            font-size: 16px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        #game-screen, #leaderboard-screen, #reference-screen {
+            display: none;
+        }
+        .container {
+            background: #e0e0e0;
+            padding: 20px;
+            border: 4px solid #000;
+            box-shadow: 10px 10px 0 #000;
+            overflow: auto;
+        }
+        .neo-brutalism {
+            border: 2px solid #000;
+            margin: 10px 0;
+            padding: 15px;
+            background: #fff;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="home-screen">
+            <h1>Math Constants Game</h1>
+            <button onclick="startGame()">Start Game</button>
+            <button onclick="showLeaderboard()">Leaderboard</button>
+            <button onclick="showReference()">Reference</button>
+        </div>
+        <div id="game-screen">
+            <div class="neo-brutalism">
+                <h2 id="constantDisplay"></h2>
+                <input type="text" id="userInput" placeholder="Enter digits...">
+                <button onclick="validateInput()">Submit</button>
+                <p>Score: <span id="score">0</span></p>
+                <p>Progress: <span id="progress">0</span>/20</p>
+            </div>
+        </div>
+        <div id="leaderboard-screen" class="neo-brutalism">
+            <h2>Leaderboard</h2>
+            <ol id="leaderboard-list"></ol>
+            <button onclick="returnHome()">Return Home</button>
+        </div>
+        <div id="reference-screen" class="neo-brutalism">
+            <h2>Mathematical Constants</h2>
+            <ul id="constants-list"></ul>
+            <button onclick="returnHome()">Return Home</button>
+        </div>
+    </div>
+
+    <script>
+        const constants = {
+            "Pi (π)": '3.14159265358979323846',
+            "Euler's Number (e)": '2.71828182845904523536',
+            "Euler-Mascheroni Constant (γ)": '0.57721566490153286060',
+            "Golden Ratio (φ)": '1.61803398874989484820',
+            "Square Root of 2 (√2)": '1.41421356237309504880',
+            "Square Root of 3 (√3)": '1.73205080756887729353',
+            "Natural Logarithm of 2 (ln(2))": '0.69314718055994530942',
+            "Natural Logarithm of 10 (ln(10))": '2.30258509299404568402',
+            "Apéry's Constant (ζ(3))": '1.20205690315959428540',
+            "Feigenbaum Constant delta (δ)": '4.66920160910299067185',
+            "Feigenbaum Constant alpha (α)": '2.50290787509589282228',
+            "Catalan's Constant (K)": '0.91596559417721901505',
+            "Gauss' Constant (G)": '0.83462684167407318628',
+            "Omega Constant (Ω)": '0.56714329040978387299',
+            "Ramanujan's Constant (μ)": '262537412640768743.999999999999250073',
+            "Khinchin's Constant": '2.68545200106530644530',
+            "Champernowne Constant (C10)": '0.12345678910111213141',
+            "Liouville's Constant": '0.11000100000000000000',
+            "Apéry's Constant (ζ(3))": '1.20205690315959428540',
+        };
+
+        let currentConstant, currentDigits, userScore, correctDigits;
+
+        function startGame() {
+            currentDigits = 3;
+            userScore = 0;
+            correctDigits = 0;
+
+            document.getElementById('home-screen').style.display = 'none';
+            document.getElementById('game-screen').style.display = 'block';
+            pickNewConstant();
+        }
+
+        function pickNewConstant() {
+            const keys = Object.keys(constants);
+            currentConstant = keys[Math.floor(Math.random() * keys.length)];
+            document.getElementById('constantDisplay').innerText = currentConstant;
+            correctDigits = 0;
+            speakDigits();
+        }
+
+        function speakDigits() {
+            const speech = new SpeechSynthesisUtterance(constants[currentConstant].substr(0, currentDigits));
+            window.speechSynthesis.speak(speech);
+        }
+
+        function validateInput() {
+            const inputElem = document.getElementById('userInput');
+            const value = inputElem.value;
+            if (value === constants[currentConstant].substr(0, currentDigits)) {
+                userScore += 1;
+                correctDigits = currentDigits;
+                if (correctDigits >= 20) {
+                    userScore += 50; // Bonus for completing a constant
+                    alert(`Congratulations! You've successfully memorised all the digits in ${currentConstant}`);
+                    startGame();
+                } else {
+                    currentDigits++;
+                }
+                document.getElementById('score').textContent = userScore;
+                document.getElementById('progress').textContent = correctDigits;
+                inputElem.value = '';
+                speakDigits();
+            } else {
+                alert(`Game over. You correctly provided ${userScore != 0 ? currentDigits : 0} digits of ${currentConstant} and achieved a total score of ${userScore}`);
+                addToLeaderboard(prompt('What name should your score be saved under?'), userScore);
+                returnHome();
+            }
+            inputElem.value = null;
+        }
+
+        function showLeaderboard() {
+            const leaderboard = JSON.parse(localStorage.getItem('leaderboard') || '[]');
+            leaderboard.sort((a, b) => b.score - a.score);
+            const leaderboardHTML = leaderboard.slice(0, 10).map((entry, index) => `<li>${index + 1}. ${entry.name}: ${entry.score}</li>`).join('');
+            document.getElementById("leaderboard-list").innerHTML = leaderboardHTML;
+            document.getElementById("home-screen").style.display = "none";
+            document.getElementById("leaderboard-screen").style.display = "block";
+        }
+
+        function addToLeaderboard(name, score) {
+            const leaderboard = JSON.parse(localStorage.getItem('leaderboard') || '[]');
+            leaderboard.sort((a, b) => b.score - a.score);
+            leaderboard.push({name, score});
+            localStorage.setItem('leaderboard', JSON.stringify(leaderboard.slice(0, 10)));
+        }
+
+        function showReference() {
+            // Display all constants and their values
+            const ref = document.getElementById('reference-screen');
+            ref.style.display = 'block';
+            document.getElementById("home-screen").style.display = "none";
+        }
+
+        function returnHome() {
+            document.getElementById("game-screen").style.display = "none";
+            document.getElementById("leaderboard-screen").style.display = "none";
+            document.getElementById("reference-screen").style.display = "none";
+            document.getElementById("home-screen").style.display = "block";
+
+            // Reset the game screen for next time
+            document.getElementById('userInput').value = '';
+            document.getElementById('score').textContent = '0';
+            document.getElementById('progress').textContent = '0';
+        }
+
+        (function loadReferenceList() {
+            const ref = document.getElementById('reference-screen'),
+                constsList = ref.querySelector('#constants-list');
+
+            for(let [key, value] of Object.entries(constants)) {
+                constsList.innerHTML += `<p><strong>${key}:</strong> <br/>${value}</p><br/>`;
+            }
+        })();
+    </script>
+</body>
+</html>
+

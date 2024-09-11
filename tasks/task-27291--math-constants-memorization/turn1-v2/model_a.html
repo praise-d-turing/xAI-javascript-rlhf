@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Math Constants Memory Game</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/neobrutalism-components@1.0.0/dist/neobrutalism.min.css">
+    <style>
+        body { 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            height: 100vh; 
+            background: #f0f0f0; 
+        }
+        .game-container {
+            background: white;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        button {
+            margin: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1>Math Constants Memory Game</h1>
+        <button onclick="startGame()">Start Game</button>
+        <button onclick="showLeaderboard()">Leaderboard</button>
+        <button onclick="showReference()">Reference</button>
+        <div id="gameArea" style="display: none;">
+            <p id="constantDisplay"></p>
+            <input type="text" id="userInput" placeholder="Enter digits here">
+            <button onclick="checkAnswer()">Submit</button>
+            <p>Score: <span id="score">0</span></p>
+        </div>
+        <div id="leaderboard" style="display: none;"></div>
+        <div id="reference" style="display: none;"></div>
+    </div>
+
+    <script>
+        // Constants and game state
+        const constants = {
+            π: "3.14159265358979323846",
+            e: "2.71828182845904523536",
+            // Add all other constants here...
+        };
+
+        let currentConstant, currentDigits, score = 0, digitsRecited = 3;
+
+        function startGame() {
+            document.getElementById('gameArea').style.display = 'block';
+            document.getElementById('leaderboard').style.display = 'none';
+            document.getElementById('reference').style.display = 'none';
+            pickNewConstant();
+        }
+
+        function pickNewConstant() {
+            const keys = Object.keys(constants);
+            currentConstant = keys[Math.floor(Math.random() * keys.length)];
+            currentDigits = constants[currentConstant].substr(0, digitsRecited);
+            document.getElementById('constantDisplay').textContent = currentDigits;
+            document.getElementById('userInput').value = '';
+        }
+
+        function checkAnswer() {
+            const userInput = document.getElementById('userInput').value;
+            if (userInput === currentDigits) {
+                score += userInput.length;
+                if (digitsRecited < 20) {
+                    digitsRecited++;
+                } else {
+                    score += 50; // Bonus for completing a constant
+                    digitsRecited = 3;
+                    pickNewConstant();
+                }
+                pickNewConstant();
+            } else {
+                // Handle incorrect input, maybe reset digitsRecited or reduce score
+            }
+            document.getElementById('score').textContent = score;
+        }
+
+        function showLeaderboard() {
+            document.getElementById('gameArea').style.display = 'none';
+            const leaderboard = document.getElementById('leaderboard');
+            leaderboard.style.display = 'block';
+            leaderboard.innerHTML = '<h2>Leaderboard</h2>';
+            // Here you would fetch or display saved leaderboard data
+            // Example: localStorage.getItem('leaderboard')
+        }
+
+        function showReference() {
+            document.getElementById('reference').style.display = 'block';
+            document.getElementById('gameArea').style.display = 'none';
+            const referenceDiv = document.getElementById('reference');
+            referenceDiv.innerHTML = '<h2>Mathematical Constants</h2>';
+            for (let [key, value] of Object.entries(constants)) {
+                referenceDiv.innerHTML += `<p><strong>${key}:</strong> ${value}</p>`;
+            }
+        }
+
+        // Initialize leaderboard from localStorage if it exists
+        document.addEventListener('DOMContentLoaded', (event) => {
+            // Initialization code for leaderboard persistence would go here
+        });
+    </script>
+</body>
+</html>

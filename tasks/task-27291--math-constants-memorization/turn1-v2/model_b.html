@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Math Constants Memorizer</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.3/css/bulma.min.css">
+    <style>
+        body {
+            background: #f0f0f0;
+            font-family: 'Courier New', monospace;
+            color: #333;
+        }
+        .hero.is-primary {
+            background: #20232a;
+            color: #61dafb;
+        }
+        .button {
+            background-color: #61dafb;
+            color: #20232a;
+            font-weight: bold;
+        }
+        .box {
+            background: #ffffff;
+            box-shadow: 0 0.5em 1em -0.125em rgba(10, 10, 10, 0.1), 0 0 0 1px rgba(10, 10, 10, 0.02);
+        }
+    </style>
+</head>
+<body>
+    <section class="hero is-primary is-bold">
+        <div class="hero-body">
+            <div class="container">
+                <h1 class="title">Math Constants Game</h1>
+            </div>
+        </div>
+    </section>
+    <section class="section">
+        <div class="container">
+            <div class="buttons is-centered">
+                <button id="startGame" class="button is-large">Start Game</button>
+                <button id="showLeaderboard" class="button is-large">Leaderboard</button>
+                <button id="showReference" class="button is-large">Reference</button>
+            </div>
+            <div id="gameArea" class="box" style="display:none;">
+                <h2 class="title is-4">Current Constant: <span id="currentConstant"></span></h2>
+                <p>Enter the digits: <input id="digitInput" type="text"></p>
+                <p>Score: <span id="score">0</span></p>
+            </div>
+            <div id="leaderboard" class="box" style="display:none;"></div>
+            <div id="reference" class="box" style="display:none;">
+                <!-- Constants will be listed here -->
+            </div>
+        </div>
+    </section>
+    
+    <script>
+    const constants = {
+        'π': '3.14159265358979323846',
+        'e': '2.71828182845904523536',
+        // Add all constants similarly
+    };
+
+    let currentDigits = 3;
+    let currentConstant;
+    let userScore = 0;
+    let displayedDigits = '';
+
+    document.getElementById('startGame').addEventListener('click', startGame);
+    document.getElementById('digitInput').addEventListener('input', checkDigits);
+
+    function startGame() {
+        document.getElementById('gameArea').style.display = 'block';
+        pickRandomConstant();
+        updateDisplay();
+    }
+
+    function pickRandomConstant() {
+        currentConstant = Object.keys(constants)[Math.floor(Math.random() * Object.keys(constants).length)];
+        displayedDigits = constants[currentConstant].substr(0, currentDigits);
+        document.getElementById('currentConstant').textContent = currentConstant;
+    }
+
+    function checkDigits(e) {
+        const input = e.target.value;
+        if (input === displayedDigits.substr(0, input.length)) {
+            if (input.length === displayedDigits.length) {
+                userScore += input.length + (currentDigits === 20 ? 50 : 0);
+                currentDigits = Math.min(currentDigits + 1, 20);
+                if (currentDigits > constants[currentConstant].length) {
+                    pickRandomConstant();
+                    currentDigits = 3;
+                }
+                displayedDigits = constants[currentConstant].substr(0, currentDigits);
+                updateDisplay();
+            }
+        } else {
+            // Optionally handle incorrect input
+        }
+    }
+
+    function updateDisplay() {
+        document.getElementById('currentConstant').textContent = currentConstant + ' (' + displayedDigits + ')';
+        document.getElementById('score').textContent = userScore;
+        document.getElementById('digitInput').value = ''; // Reset input
+    }
+
+    // Implement leaderboard and reference page logic similarly with local storage for persistence
+    </script>
+</body>
+</html>
