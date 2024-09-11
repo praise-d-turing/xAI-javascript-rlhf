@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Arithmetic Game</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/water.css">
+<style>
+  body {
+    font-family: monospace;
+    background: #f4f4f4;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+  }
+  .neo-brutalism {
+    background: #fff;
+    padding: 20px;
+    border: 1px solid #ddd;
+    box-shadow: 6px 6px 0px #000;
+  }
+  .button {
+    cursor: pointer;
+    margin: 10px;
+    padding: 10px;
+    border: 2px solid #000;
+    background: #fff;
+  }
+  .button:hover {
+    background: #000;
+    color: #fff;
+  }
+  .modal {
+    position: fixed;
+    z-index: 1;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.4);
+  }
+  .modal-close {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+  }
+  .modal-close:hover, .modal-close:focus {
+    color: black;
+    text-decoration: none;
+  }
+  .modal-content {
+    background-color: #fefefe;
+    margin: 15% auto;
+    padding: 20px;
+    border: 1px solid #888;
+    width: 50%;
+  }
+</style>
+</head>
+<body>
+  <div class="neo-brutalism">
+    <h1>Arithmetic Game</h1>
+    <div id="home-screen">
+      <select id="difficulty">
+        <option value="easy">Easy (10s)</option>
+        <option value="medium">Medium (7s)</option>
+        <option value="hard">Hard (3.5s)</option>
+      </select>
+      <button id="start_button" onclick="startGame()">Start Game</button>
+      <button id="start_button" onclick="displayLeaderboard()">Leaderboard</button>
+    </div>
+    <div id="game-screen" hidden>
+      <button id="end_button" onclick="endGame()">Stop Game</button>
+      <p id="question"></p>
+      <div id="options"></div>
+      <p>Time left: <span id="timer">0</span> seconds</p>
+    </div>
+    <div id="leaderboard-modal" class="modal" hidden>
+      <div class="modal-content">
+        <span class="modal-close" onclick="hideLeaderboard()" style="cursor:pointer;">&times;</span>
+        <h2>Leaderboard <span id="leaderboard_difficulty"></span></h2>
+        <ul id="leaderboard-list"></ul>
+        <button onclick="resetLeaderboard()">Reset Leaderboard</button>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    const difficulties = { easy: 10, medium: 7, hard: 3.5 };
+    let currentDifficulty = document.querySelector('#difficulty').value
+      , timer
+      , score = -1
+      , intervalId
+      , timeoutId
+    ;
+
+    const leaderboardLSKey = 'simple_math_game__leaderboard'
+      , leaderboard = JSON.parse(localStorage.getItem(leaderboardLSKey)) || { easy: [], medium: [], hard: [] }
+    ;
+
+    const startButton = document.querySelector('#start_button')
+      , endButton = document.querySelector('#end_button')
+      , homeScreen = document.querySelector('#home-screen')
+      , gameScreen = document.querySelector('#game-screen')
+      , leaderboardModal = document.querySelector('#leaderboard-modal')
+    ;
+
+    (function watchDifficulty() {
+      const difficultySelector = document.querySelector('#difficulty');
+      function updateDifficulty() {
+        currentDifficulty = difficultySelector.value
+      }
+      document.querySelector('#difficulty').onchange = updateDifficulty;
+      updateDifficulty();
+    })();
+ 
+    function startGame() {
+      homeScreen.hidden = true;
+      gameScreen.hidden = false;
+      nextLevel();
+    }
+
+    function endGame() {
+      clearInterval(intervalId);
+      gameScreen.hidden = true;
+      homeScreen.hidden = false;
+      const playerName = prompt('Game Over! Enter your name for the leaderboard:');
+      if (playerName) {
+        updateLeaderboard(playerName, score, currentDifficulty);
+      }
+      score = 0;
+    }
+
+    function nextLevel() {
+        score++;
+        generateQuestion();
+        resetTimer(difficulties[currentDifficulty]);
+    }
+
+    function generateQuestion() {
+      const operators = ['+', '-', '*', '/'];
+      const operator = operators[Math.floor(Math.random() * operators.length)];
+      let num1 = Math.floor(Math.random() * 90) + 10;
+      let num2 = Math.floor(Math.random() * 90) + 10;
+      if (operator === '/') {
+        while (num1 % num2 !== 0) {
+          num1 = Math.floor(Math.random() * 90) + 10;
+          num2 = Math.floor(Math.random() * 90) + 10;
+        }
+      }
+      const correctAnswer = eval(`${num1} ${operator} ${num2}`);
+      const options = Array(4).fill(0).map(() => correctAnswer + (Math.random() > 0.5 ? 1 : -1) * Math.floor(Math.random() * 10));
+      options[Math.floor(Math.random() * 4)] = correctAnswer;
+      
+      document.getElementById('question').textContent = `${num1} ${operator} ${num2} = ?`;
+      document.getElementById('options').innerHTML = options.map((option, index) => `<button class="button" onclick="checkAnswer(${index}, ${correctAnswer})">${option}</button>`).join('');
+    }
+
+    function resetTimer(seconds) {
+      clearTimeout(timeoutId);
+      clearInterval(intervalId);
+      let timeLeft = seconds;
+      document.getElementById('timer').textContent = timeLeft;
+      intervalId = setInterval(() => {
+        timeLeft -= 0.1;
+        document.getElementById('timer').textContent = timeLeft.toFixed(1);
+        if (timeLeft <= 0) {
+          clearInterval(intervalId);
+          endGame();
+        }
+      }, 100);
+    }
+
+    function checkAnswer(index, correctAnswer) {
+      if (parseFloat(document.getElementById('options').children[index].textContent) === correctAnswer) {
+        nextLevel();
+      } else {
+        endGame();
+      }
+    }
+
+    function updateLeaderboard(name, score, difficulty) {
+      leaderboard[difficulty].push({ name, score });
+      leaderboard[difficulty].sort((a, b) => b.score - a.score);
+      leaderboard[difficulty] = leaderboard[difficulty].slice(0, 10);
+      localStorage.setItem(leaderboardLSKey, JSON.stringify(leaderboard));
+      displayLeaderboard(difficulty);
+    }
+
+    function displayLeaderboard() {
+      const leaderboard = JSON.parse(localStorage.getItem(leaderboardLSKey)) || { easy: [], medium: [], hard: [] };
+      const list = document.getElementById('leaderboard-list');
+      list.innerHTML = leaderboard[currentDifficulty].map(entry => `<li>${entry.name}: ${entry.score}</li>`).join('');
+      document.getElementById('leaderboard-modal').style.display = 'block';
+      document.getElementById('leaderboard_difficulty').innerText = `[${currentDifficulty}]`;
+    }
+
+    function hideLeaderboard() {
+      document.getElementById('leaderboard-modal').style.display='none';
+    }
+
+    function resetLeaderboard() {
+      if (confirm('Are you sure you want to reset the leaderboard?')) {
+        localStorage.removeItem(`leaderboard_${currentDifficulty}`);
+        leaderboard.easy = [];
+        leaderboard.medium = [];
+        leaderboard.hard = [];
+        document.getElementById('leaderboard-list').innerHTML = '';
+      }
+    }
+  </script>
+</body>
+</html>
+
