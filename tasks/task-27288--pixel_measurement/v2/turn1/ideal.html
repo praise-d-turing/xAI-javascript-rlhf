@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pixel Measurement Widget</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto&display=swap">
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            height: 100%;
+        }
+
+        body {
+            --box-handle-size: 10px;
+            font-family: 'Roboto', sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+
+        #full-dimensions {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.5);
+            color: #fff;
+            padding: 5px 10px;
+            border-radius: 5px;
+            z-index: 1000;
+            transition: opacity 0.3s;
+            font-size: 0.8em;
+        }
+
+        #full-dimensions:hover {
+            opacity: 0;
+        }
+
+        #measurement-widget {
+            cursor: crosshair;
+            user-select: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: none;
+        }
+
+        #measurement-values {
+            position: absolute;
+            right: 10px;
+            top: 10px;
+            width: 150px;
+            background-color: #b6d9fd;
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        button {
+            background-color: #4CAF50;
+            /* Green background */
+            border: none;
+            color: white;
+            padding: 15px 32px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 4px 2px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            border-radius: 5px;
+        }
+
+        button:hover {
+            background-color: #45a049;
+            /* Darker green on hover */
+        }
+
+        .measurement-container {
+            position: absolute;
+            border: 1px dashed #000;
+            z-index: 999;
+        }
+
+        .arrow {
+            --arrow-head-size: 4px;
+            position: absolute;
+            height: 1px;
+            width: 1px;
+            background-color: #FF5722;
+        }
+
+        .arrow-inner {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            height: 100%;
+        }
+
+        .arrow-line-width {
+            color: white;
+            background-color: black;
+            height: fit-content;
+        }
+
+        .dimension-display {
+            position: absolute;
+            font-size: var(--arrow-head-size);
+            color: #fff;
+            padding: 2px;
+            border-radius: 2px;
+            background: #FF5722;
+        }
+
+        .has-arrow-head::before,
+        .has-arrow-head::after {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 0;
+            border: var(--arrow-head-size) solid transparent;
+        }
+
+        .arrow_head--horizontal::before {
+            left: calc(-1 * var(--arrow-head-size));
+            border-right-color: #000;
+        }
+
+        .arrow_head--horizontal::after {
+            right: calc(-1 * var(--arrow-head-size));
+            border-left-color: #000;
+        }
+
+        .arrow_head--horizontal::before,
+        .arrow_head--horizontal::after {
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        .arrow_head--vertical::before,
+        .arrow_head--vertical::after {
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .arrow_head--vertical::before {
+            top: calc(-1 * var(--arrow-head-size));
+            border-bottom-color: #000;
+        }
+
+        .arrow_head--vertical::after {
+            bottom: calc(-1 * var(--arrow-head-size));
+            border-top-color: #000;
+        }
+
+        .box-handle {
+            position: absolute;
+            border-radius: 50%;
+            width: var(--box-handle-size);
+            height: var(--box-handle-size);
+            background-color: white;
+            background: tomato;
+            opacity: 0.8;
+            transition: opacity 0.3s, transform 0.3s;
+        }
+
+        .box-handle:hover {
+            opacity: 1;
+        }
+
+        .box-handle[class*="top-"] {
+            top: 0;
+        }
+
+        .box-handle[class*="bottom-"] {
+            bottom: 0;
+        }
+
+        .box-handle[class*="middle-"] {
+            top: 50%;
+        }
+
+        .box-handle[class*="-left-handle"] {
+            left: 0;
+        }
+
+        .box-handle[class*="-right-handle"] {
+            right: 0;
+        }
+
+        .box-handle[class*="-center-handle"] {
+            left: 50%;
+        }
+
+        .top-left-handle {
+            transform: translate(-50%, -50%);
+        }
+
+        .top-center-handle {
+            transform: translate(-50%, -50%);
+        }
+
+        .top-right-handle {
+            transform: translate(50%, -50%);
+        }
+
+        .middle-left-handle {
+            transform: translate(-50%, -50%);
+        }
+
+        .middle-right-handle {
+            transform: translate(50%, -50%);
+        }
+
+        .bottom-left-handle {
+            transform: translate(-50%, 50%);
+        }
+
+        .bottom-center-handle {
+            transform: translate(-50%, 50%);
+        }
+
+        .bottom-right-handle {
+            transform: translate(50%, 50%);
+        }
+
+        .top-left-handle,
+        .bottom-right-handle {
+            cursor: nwse-resize;
+        }
+
+        .top-right-handle,
+        .bottom-left-handle {
+            cursor: nesw-resize;
+        }
+
+        .top-center-handle,
+        .bottom-center-handle {
+            cursor: ns-resize;
+        }
+
+        .middle-left-handle,
+        .middle-right-handle {
+            cursor: ew-resize;
+        }
+
+        .toggle-measurement-widget {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            position: fixed;
+            z-index: 99999;
+        }
+
+        /* Styling for layout items */
+
+        /* Style the header */
+        .header {
+            background-color: #f1f1f1;
+            padding: 30px;
+            text-align: center;
+            font-size: 35px;
+        }
+
+        /* Create three equal columns that floats next to each other */
+        .column {
+            float: left;
+            width: 33.33%;
+            padding: 10px;
+            height: 300px;
+            /* Should be removed. Only for demonstration */
+        }
+
+        /* Clear floats after the columns */
+        .row:after {
+            content: "";
+            display: table;
+            clear: both;
+        }
+
+        /* Style the footer */
+        .footer {
+            background-color: #f1f1f1;
+            padding: 10px;
+            text-align: center;
+        }
+
+        /* Responsive layout - makes the three columns stack on top of each other instead of next to each other */
+        @media (max-width: 600px) {
+            .column {
+                width: 100%;
+            }
+        }
+
+        /* End of Styling for layout items */
+
+    </style>
+</head>
+
+<body>
+    <button class="toggle-measurement-widget" style="">Enable Measuring Tool</button>
+    <div class="mock-layout" style="padding: 2em;">
+        <style>
+        </style>
+        <h2>Measuring Tool Demo</h2>
+        <p>This page gives a demo of the measuring tool. Click the floating "Enable Measuring Tool" button to begin
+            measuring elements. You can perform free-form rectangular measurement, or click on specific elements to get
+            their exact dimensions. The dimensions of the measured area are displayed at the top-right corner of the
+            screen.
+        </p>
+
+        <div class="header">
+            <h2>Header</h2>
+        </div>
+
+        <div class="row">
+            <div class="column" style="background-color:#aaa;">
+                <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Fusce ac vulputate lectus. Vestibulum sed mi
+                    ac ligula vestibulum mattis. Fusce ut sapien at nulla fermentum tempor. Mauris pharetra velit
+                    ligula, non cursus arcu iaculis vulputate. Donec in nulla vitae sem condimentum elementum. Maecenas
+                    sagittis aliquet commodo. Mauris fringilla porta turpis vitae lobortis. Curabitur placerat ornare
+                    suscipit. Sed eget egestas lectus. Sed dictum pretium lectus, sed hendrerit leo aliquam sit amet.
+                    Pellentesque sodales quam nisl, ac sagittis augue bibendum sed. Aliquam erat volutpat. Aliquam id
+                    pulvinar odio. Vivamus vulputate dignissim turpis eu euismod. </p>
+            </div>
+            <div class="column" style="background-color:#bbb;">
+                <p>Ut rutrum ultricies commodo. Aliquam et vestibulum ipsum. Etiam finibus sem tellus, vitae commodo
+                    lorem sodales quis. Proin dapibus sem nec nisl pulvinar imperdiet. Pellentesque id rutrum augue.
+                    Nullam bibendum volutpat sapien, id pharetra mauris tempus vel. Morbi egestas aliquet eros, at
+                    vulputate nibh convallis et.</p>
+            </div>
+            <div class="column" style="background-color:#ccc;">
+                <p>Integer sit amet sem metus. Curabitur non dignissim enim. Donec aliquet nisl eget magna mollis
+                    mattis. Aenean at finibus nibh. Integer dolor sapien, malesuada a porttitor non, varius eu nisi. In
+                    rhoncus mattis orci et feugiat. Maecenas vehicula semper sapien, eu fermentum turpis pretium et.
+                </p>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>Footer</p>
+        </div>
+
+    </div>
+
+    <div id="measurement-widget">
+        <div id="full-dimensions"></div>
+        <div id="measurement-values"></div>
+
+        <div class="measurement-container">
+            <div class="box-handle top-left-handle" data-resize-axis="x,y" data-handle-direction="top,left"></div>
+            <div class="box-handle top-center-handle" data-resize-axis="y" data-handle-direction="top"></div>
+            <div class="box-handle top-right-handle" data-resize-axis="x,y" data-handle-direction="top,right"></div>
+            <div class="box-handle middle-left-handle" data-resize-axis="x" data-handle-direction="left"></div>
+            <div class="box-handle middle-right-handle" data-resize-axis="x" data-handle-direction="right"></div>
+            <div class="box-handle bottom-left-handle" data-resize-axis="x,y" data-handle-direction="bottom,left"></div>
+            <div class="box-handle bottom-center-handle" data-resize-axis="y" data-handle-direction="bottom"></div>
+            <div class="box-handle bottom-right-handle" data-resize-axis="x,y" data-handle-direction="bottom,right">
+            </div>
+        </div>
+        <div class="arrow" id="top-arrow">
+            <div class="arrow-inner has-arrow-head arrow_head--vertical"><span class="arrow-line-width"></span></div>
+        </div>
+        <div class="arrow" id="right-arrow">
+            <div class="arrow-inner has-arrow-head arrow_head--horizontal"><span class="arrow-line-width"></span></div>
+        </div>
+        <div class="arrow" id="bottom-arrow">
+            <div class="arrow-inner has-arrow-head arrow_head--vertical"><span class="arrow-line-width"></span></div>
+        </div>
+        <div class="arrow" id="left-arrow">
+            <div class="arrow-inner has-arrow-head arrow_head--horizontal"><span class="arrow-line-width"></span></div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script>
+        $(document).ready(function () {
+            const $fullDimensions = $('#full-dimensions');
+            const $measurementContainer = $('.measurement-container');
+            const $arrows = $('.arrow');
+            const $toggleButton = $('.toggle-measurement-widget');
+            const measureElementBlockers = new Set;
+            // Drag-related variables
+            let startX, startY, endX, endY, isDragging = false;
+            let widgetActivated = false;
+            let boxHandleData = {
+                dragStartX: null,
+                dragStartY: null,
+                dragEndX: null,
+                dragEndY: null,
+                resizeX: false,
+                resizeY: false,
+                initialWidth: 0,
+                initialHeight: 0,
+                initialLeft: 0,
+                initialTop: 0,
+                handleDirection: '', // Store the handle direction (e.g., 'left', 'right', 'top', 'bottom')
+            };
+
+            $toggleButton.click(toggleMeasurementWidget);
+
+            // All the logic related to setting up the widget has been moved here
+            function enableMeasurementWidget() {
+                console.log('on')
+                updateFullDimensions();
+
+                $(document).on('mousedown', startDrag)
+                    .on('mousemove', updateDrag)
+                    .on('mouseup', stopDrag)
+                    .on('click', measureElement)
+
+                $('.box-handle')
+                    .on('mousedown', handleBoxHandleMouseDown);
+
+                $('#measurement-widget').show();
+                widgetActivated = true;
+            }
+
+            function disableMeasurementWidget() {
+                console.log('off')
+                $(document).off('mousedown', startDrag)
+                    .off('mousemove', updateDrag)
+                    .off('mouseup', stopDrag)
+                    .off('click', measureElement)
+
+                $('.box-handle')
+                    .off('mousedown', handleBoxHandleMouseDown)
+                    .off('mouseup', handleBoxHandleMouseUp);
+
+                $('#measurement-widget').hide();
+                widgetActivated = false;
+            }
+
+            function toggleMeasurementWidget() {
+                if (widgetActivated) {
+                    $toggleButton.text('Enable Measurement Tool');
+                    disableMeasurementWidget();
+                } else {
+                    $toggleButton.text('Disable Measurement Tool');
+                    enableMeasurementWidget();
+                }
+            }
+
+            function updateFullDimensions() {
+                $fullDimensions.text(`Screen: ${window.innerWidth}x${window.innerHeight}`);
+            }
+
+            function startDrag(event) {
+                if (isInteractableWidget(event))
+                    return;
+                startX = event.clientX;
+                startY = event.clientY;
+                isDragging = true;
+            }
+
+            function stopDrag(e) {
+                e.preventDefault();
+                isDragging = false;
+                // Restore the onclick handler that was removed in `updateDrag`
+                setTimeout(() => {
+                    measureElementBlockers.delete(Symbol.for('creating_selection_area'))
+                });
+            }
+
+            function updateDrag(event) {
+                if (isDragging) {
+                    endX = event.clientX;
+                    endY = event.clientY;
+                    updateMeasurement();
+                    // A click event (which will trigger `measureElement`) will be triggered
+                    // after the dragging ends due to the `mousedown` -> `mouseup` sequence.
+                    // This prevents that from happening.
+                    measureElementBlockers.add(Symbol.for('creating_selection_area'));
+                }
+            }
+
+            function updateMeasurement() {
+                const width = Math.abs(endX - startX);
+                const height = Math.abs(endY - startY);
+                const posX = Math.min(startX, endX);
+                const posY = Math.min(startY, endY);
+
+                $measurementContainer.css({
+                    top: `${posY}px`,
+                    left: `${posX}px`,
+                    width: `${width}px`,
+                    height: `${height}px`
+                });
+
+                displayMeasurementAreaDimensions();
+
+                updateArrows();
+            }
+
+            function displayMeasurementAreaDimensions() {
+                const measurementContainerBBox = $measurementContainer[0].getBoundingClientRect();
+                $('#measurement-values').html(`
+                        <b>w</b>: ${$measurementContainer.width()}px<br/>
+                        <b>h</b>: ${$measurementContainer.height()}px<br/>
+                    `);
+            }
+
+            function updateArrows() {
+                const positionArrow = ($arrow, position) => {
+                    const measurementContainerBBox = $measurementContainer[0].getBoundingClientRect();
+                    let axisLength;
+                    switch (position) {
+                        case 'top': {
+                            axisLength = measurementContainerBBox.top;
+                            $arrow.css({
+                                left: `${measurementContainerBBox.left + measurementContainerBBox.width * 0.5}px`,
+                                height: `${axisLength}px`,
+                                top: 0,
+                            });
+                            break;
+                        }
+                        case 'bottom': {
+                            axisLength = window.innerHeight - measurementContainerBBox.bottom;
+                            $arrow.css({
+                                left: `${measurementContainerBBox.left + measurementContainerBBox.width * 0.5}px`,
+                                height: `${axisLength}px`,
+                                bottom: 0,
+                            });
+                            break;
+                        }
+                        case 'left': {
+                            axisLength = measurementContainerBBox.left;
+                            $arrow.css({
+                                top: `${measurementContainerBBox.top + measurementContainerBBox.height * 0.5}px`,
+                                width: `${axisLength}px`,
+                                left: 0,
+                            });
+                            break;
+                        }
+                        case 'right': {
+                            axisLength = window.innerWidth - measurementContainerBBox.right
+                            $arrow.css({
+                                top: `${measurementContainerBBox.top + measurementContainerBBox.height * 0.5}px`,
+                                width: `${axisLength}px`,
+                                right: 0,
+                            });
+                            break;
+                        }
+                    }
+                    $arrow.find('.arrow-line-width').text(`${axisLength}px`);
+                };
+
+                $('.arrow').each((i, el) => {
+                    positionArrow($(el), el.id.split('-')[0])
+                })
+            }
+
+            /**
+             * Determines if an event occurred on an interactible widget
+             * @param {Event} The event object
+             */
+            function isInteractableWidget(e) {
+                const interactableWidgetSelectors = [
+                    '.box-handle',
+                    '.toggle-measurement-widget',
+                ];
+                return !!interactableWidgetSelectors.find(s => e.target.closest(s));
+            }
+
+            function measureElement(e) {
+                if (
+                    measureElementBlockers.size
+                    || isInteractableWidget(e)
+                    || !e.target.closest('#measurement-widget')
+                ) {
+                    return;
+                }
+                $('#measurement-widget').hide();
+                {
+                    const el = document.elementFromPoint(e.clientX, e.clientY);
+                    if (!el)
+                        return;
+
+                    const elBBox = el.getBoundingClientRect();
+                    startX = elBBox.x;
+                    startY = elBBox.y;
+                    endX = elBBox.right;
+                    endY = elBBox.bottom;
+                }
+                $('#measurement-widget').show();
+                updateMeasurement();
+            };
+
+            function dragBoxHandle(e) {
+                boxHandleData.dragEndX = e.clientX;
+                boxHandleData.dragEndY = e.clientY;
+
+                const widthDelta = (boxHandleData.dragEndX - boxHandleData.dragStartX);
+                const heightDelta = (boxHandleData.dragEndY - boxHandleData.dragStartY);
+
+                // Handle horizontal resizing
+                if (boxHandleData.resizeX) {
+                    if (boxHandleData.handleDirection.includes('left')) {
+                        const newWidth = boxHandleData.initialWidth - widthDelta;
+                        const newLeft = boxHandleData.initialLeft + widthDelta;
+                        if (newWidth > 0) {
+                            $measurementContainer.css({
+                                width: `${newWidth}px`,
+                                left: `${newLeft}px`
+                            });
+                        }
+                    } else if (boxHandleData.handleDirection.includes('right')) {
+                        const newWidth = boxHandleData.initialWidth + widthDelta;
+                        if (newWidth > 0) {
+                            $measurementContainer.css({width: `${newWidth}px`});
+                        }
+                    }
+                }
+
+                // Handle vertical resizing
+                if (boxHandleData.resizeY) {
+                    if (boxHandleData.handleDirection.includes('top')) {
+                        const newHeight = boxHandleData.initialHeight - heightDelta;
+                        const newTop = boxHandleData.initialTop + heightDelta;
+                        if (newHeight > 0) {
+                            $measurementContainer.css({
+                                height: `${newHeight}px`,
+                                top: `${newTop}px`
+                            });
+                        }
+                    } else if (boxHandleData.handleDirection.includes('bottom')) {
+                        const newHeight = boxHandleData.initialHeight + heightDelta;
+                        if (newHeight > 0) {
+                            $measurementContainer.css({height: `${newHeight}px`});
+                        }
+                    }
+                }
+                updateArrows();
+                displayMeasurementAreaDimensions();
+            }
+
+            function handleBoxHandleMouseDown(e) {
+                measureElementBlockers.add(Symbol.for('box-handle-drag'));
+                boxHandleData.dragStartX = e.clientX;
+                boxHandleData.dragStartY = e.clientY;
+                boxHandleData.initialWidth = $measurementContainer.width();
+                boxHandleData.initialHeight = $measurementContainer.height();
+                boxHandleData.initialLeft = $measurementContainer.offset().left;
+                boxHandleData.initialTop = $measurementContainer.offset().top;
+
+                const resizeAxis = e.target.dataset.resizeAxis.split(',');
+                boxHandleData.resizeX = resizeAxis.includes('x');
+                boxHandleData.resizeY = resizeAxis.includes('y');
+                boxHandleData.handleDirection = e.target.dataset.handleDirection.split(','); // Get the handle direction
+
+                $(document)
+                    .mousemove(dragBoxHandle)
+                    .mouseup(handleBoxHandleMouseUp);
+            }
+
+            function handleBoxHandleMouseUp(e) {
+                $(document)
+                    .off('mousemove', dragBoxHandle)
+                    .off('mouseup', handleBoxHandleMouseUp);
+                setTimeout(() => measureElementBlockers.delete(Symbol.for('box-handle-drag')));
+            }
+        });
+    </script>
+</body>
+
+</html>

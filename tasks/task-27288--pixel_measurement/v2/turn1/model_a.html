@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pixel Measurement Widget</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<style>
+  body {
+    margin: 0;
+    padding: 0;
+    font-family: Arial, sans-serif;
+  }
+  .measure-tool {
+    position: absolute;
+    border: 2px dashed #007bff;
+    background: rgba(0, 123, 255, 0.1);
+    cursor: move;
+    z-index: 1000;
+  }
+  .handle {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    background: #007bff;
+    border-radius: 50%;
+  }
+  .dimension-display {
+    position: fixed;
+    bottom: 10px;
+    right: 10px;
+    background: rgba(255, 255, 255, 0.8);
+    padding: 5px;
+    border-radius: 5px;
+    z-index: 1001;
+  }
+  .dimension-display:hover {
+    display: none;
+  }
+  .arrow-line {
+    position: absolute;
+    background: rgba(0, 0, 0, 0.1);
+  }
+  .toggle-measure {
+    position: fixed;
+    top: 10px;
+    left: 10px;
+    z-index: 1002;
+  }
+  .mock-layout div {
+    background: #f0f0f0;
+    border: 1px solid #ddd;
+    height: 100px;
+    margin: 10px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+</style>
+</head>
+<body>
+
+<div class="toggle-measure">
+  <button class="btn btn-primary" onclick="toggleMeasurement()">Toggle Measurement</button>
+</div>
+
+<div class="dimension-display" id="screenDimensions">Width: 0px, Height: 0px</div>
+
+<div class="mock-layout" style="padding: 20px;">
+  <div style="width: 100%; height: 50px;">Navbar</div>
+  <div style="width: 70%; height: 200px; float: left;">Hero Section</div>
+  <div style="width: 30%; height: 200px; float: right;">Sidebar</div>
+  <div style="width: 50%; height: 150px;">Content</div>
+  <div style="width: 50%; height: 150px;">Extra</div>
+</div>
+
+<div class="measure-tool" id="measureTool">
+  <div class="handle" style="top: -5px; left: -5px; cursor: nw-resize;"></div>
+  <div class="handle" style="top: -5px; left: 50%; margin-left: -5px; cursor: n-resize;"></div>
+  <!-- Add other handles similarly -->
+</div>
+
+<script>
+let isMeasuring = false;
+let measureTool = document.getElementById('measureTool');
+let startX, startY, startWidth, startHeight;
+let screenDimensions = document.getElementById('screenDimensions');
+
+function toggleMeasurement() {
+  isMeasuring = !isMeasuring;
+  if (isMeasuring) {
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('click', onElementClick);
+    measureTool.style.display = 'block';
+    updateScreenDimensions();
+  } else {
+    document.removeEventListener('mousemove', onMouseMove);
+    document.removeEventListener('click', onElementClick);
+    measureTool.style.display = 'none';
+    // Reset or hide any measurement visuals here
+  }
+}
+
+function updateScreenDimensions() {
+  screenDimensions.innerText = `Width: ${window.innerWidth}px, Height: ${window.innerHeight}px`;
+}
+
+function onMouseMove(e) {
+  if (!measureTool.dataset.dragging) return;
+  let dx = e.clientX - startX;
+  let dy = e.clientY - startY;
+  
+  if (measureTool.dataset.handle === 'move') {
+    measureTool.style.left = (measureTool.offsetLeft + dx) + 'px';
+    measureTool.style.top = (measureTool.offsetTop + dy) + 'px';
+  } else {
+    // Handle resizing based on which handle is being dragged
+    if (dx) measureTool.style.width = (startWidth + dx) + 'px';
+    if (dy) measureTool.style.height = (startHeight + dy) + 'px';
+  }
+  
+  startX = e.clientX;
+  startY = e.clientY;
+  updateArrowsAndDimensions();
+}
+
+function onElementClick(e) {
+  if (e.target === measureTool) return;
+  let rect = e.target.getBoundingClientRect();
+  measureTool.style.left = rect.left + 'px';
+  measureTool.style.top = rect.top + 'px';
+  measureTool.style.width = rect.width + 'px';
+  measureTool.style.height = rect.height + 'px';
+  updateArrowsAndDimensions();
+}
+
+function updateArrowsAndDimensions() {
+  // Implement logic for drawing arrows and displaying dimensions
+  // This would involve creating or updating DOM elements for arrows and text
+}
+
+// Initialize dragging events for measure tool and its handles
+document.querySelectorAll('.handle, .measure-tool').forEach(item => {
+  item.addEventListener('mousedown', (e) => {
+    e.preventDefault();
+    startX = e.clientX;
+    startY = e.clientY;
+    startWidth = measureTool.offsetWidth;
+    startHeight = measureTool.offsetHeight;
+    measureTool.dataset.dragging = true;
+    measureTool.dataset.handle = e.target.classList.contains('handle') ? e.target.style.cursor.split('-')[0] : 'move';
+  });
+});
+
+document.addEventListener('mouseup', () => {
+  measureTool.dataset.dragging = false;
+});
+
+// Initial setup
+updateScreenDimensions();
+</script>
+
+</body>
+</html>
