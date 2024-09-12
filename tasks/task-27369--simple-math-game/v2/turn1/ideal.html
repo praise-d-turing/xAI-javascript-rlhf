@@ -152,11 +152,15 @@
         }
       }
       const correctAnswer = eval(`${num1} ${operator} ${num2}`);
-      const options = Array(4).fill(0).map(() => correctAnswer + (Math.random() > 0.5 ? 1 : -1) * Math.floor(Math.random() * 10));
-      options[Math.floor(Math.random() * 4)] = correctAnswer;
-      
+      let options;
+      do {
+        options = Array(4).fill(0).map(() => correctAnswer + (Math.random() > 0.5 ? 1 : -1) * Math.ceil(Math.random() * 10));
+        options[Math.floor(Math.random() * 4)] = correctAnswer;
+      } while (new Set(options).size != options.length); // duplicate options exist
+ 
       document.getElementById('question').textContent = `${num1} ${operator} ${num2} = ?`;
       document.getElementById('options').innerHTML = options.map((option, index) => `<button class="button" onclick="checkAnswer(${index}, ${correctAnswer})">${option}</button>`).join('');
+      return options;
     }
 
     function resetTimer(seconds) {
