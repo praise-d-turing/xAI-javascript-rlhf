@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Math Raindrops</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(to right, #83a4d4, #b6fbff);
+            margin: 0;
+            overflow: hidden;
+        }
+
+        #game-area {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        .bubble {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            background-color: rgba(255, 255, 255, 0.7);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 20px;
+            transition: top 10s linear;
+        }
+
+        #laser-gun {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 50px;
+            height: 50px;
+            background: url('data:image/svg+xml;utf8,<svg viewBox="0 0 24 24" fill="none" stroke="red" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22v-7m0 0l-3 3m3-3l3 3m-10-3h8a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-8"/></svg>') no-repeat center;
+            background-size: contain;
+        }
+
+        #laser-beam {
+            position: absolute;
+            bottom: 70px;
+            left: 50%;
+            width: 2px;
+            background-color: red;
+            display: none;
+        }
+
+        #lives,
+        #score,
+        #leaderboard {
+            position: absolute;
+            top: 10px;
+            font-size: 18px;
+            color: white;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 5px 10px;
+            border-radius: 5px;
+        }
+
+        #lives {
+            left: 10px;
+        }
+
+        #score {
+            right: 10px;
+        }
+
+        #input-area {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+        }
+
+        #answer-input,
+        #submit-btn {
+            padding: 10px;
+            margin: 0 5px;
+        }
+
+        #submit-btn {
+            background-color: #4CAF50;
+            border: none;
+            color: white;
+            cursor: pointer;
+        }
+
+        #home-screen,
+        #game-over {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-size: 2em;
+        }
+
+        #leaderboard {
+            left: 50%;
+            transform: translateX(-50%);
+            width: 200px;
+            text-align: center;
+        }
+
+        .heart {
+            color: red;
+            font-size: 24px;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="home-screen">
+        <h1>Math Raindrops</h1>
+        <button onclick="startGame()">Start Game</button>
+        <div id="leaderboard">
+            <h3>Leaderboard</h3>
+            <!-- Leaderboard content will be dynamically added here -->
+        </div>
+    </div>
+    <div id="game-area" style="display: none;">
+        <div id="lives"><span class="heart">❤️</span><span class="heart">❤️</span><span class="heart">❤️</span></div>
+        <div id="score">Score: <span id="current-score">0</span></div>
+        <div id="laser-gun"></div>
+        <div id="laser-beam"></div>
+        <div id="input-area">
+            <input type="text" id="answer-input" placeholder="Enter answer"
+                onkeyup="if(event.key === 'Enter') submitAnswer()">
+            <button id="submit-btn" onclick="submitAnswer()">Submit</button>
+        </div>
+    </div>
+    <div id="game-over" style="display: none;">
+        <h2>Game Over!</h2>
+        <p>Your Score: <span id="final-score"></span></p>
+        <button onclick="location.reload()">Play Again</button>
+    </div>
+    <script>
+        let lives = 3;
+        let score = 0;
+        let difficulty = {easy: 10000, medium: 7000, hard: 4500};
+        let currentDifficulty = difficulty.easy;
+        let gameInterval;
+        let bubbles = [];
+        const gameArea = document.getElementById('game-area');
+        const homeScreen = document.getElementById('home-screen');
+
+        function startGame() {
+            homeScreen.style.display = 'none';
+            gameArea.style.display = 'block';
+            startBubbles();
+        }
+
+        function startBubbles() {
+            gameInterval = setInterval(() => {
+                if (bubbles.length < 5) createBubble();
+            }, 2000);
+        }
+
+        function createBubble() {
+            const bubble = document.createElement('div');
+            bubble.className = 'bubble';
+            bubble.style.left = `${Math.random() * (window.innerWidth - 60)}px`;
+            bubble.style.top = '0px';
+            const operation = ['+', '-', '*', '/'][Math.floor(Math.random() * 4)];
+            let num1 = Math.floor(Math.random() * 10);
+            let num2 = operation === '/' ? Math.floor(Math.random() * 10) * num1 : Math.floor(Math.random() * 10);
+            if (operation === '/') num2 = num2 === 0 ? 1 : num2; // Ensure no division by zero
+            bubble.textContent = `${num1} ${operation} ${num2}`;
+            bubble.dataset.answer = eval(`${num1} ${operation} ${num2}`);
+            gameArea.appendChild(bubble);
+            bubbles.push(bubble);
+
+            setTimeout(() => {
+                if (document.body.contains(bubble)) {
+                    loseLife();
+                    removeBubble(bubble);
+                }
+            }, currentDifficulty);
+        }
+
+        function submitAnswer() {
+            const input = document.getElementById('answer-input');
+            const answer = Number(input.value);
+            const bubble = bubbles.find(b => Number(b.dataset.answer) === answer);
+            if (bubble) {
+                fireLaser(bubble);
+                score += 10 * (Object.keys(difficulty).indexOf(Object.keys(difficulty).find(key => difficulty[key] === currentDifficulty)) + 1);
+                updateScore();
+            }
+            input.value = '';
+        }
+
+        function fireLaser(bubble) {
+            const laser = document.getElementById('laser-beam');
+            laser.style.display = 'block';
+            laser.style.height = `${bubble.offsetTop}px`;
+            bubble.style.transition = 'opacity 0.5s';
+            bubble.style.opacity = '0';
+            setTimeout(() => {
+                removeBubble(bubble);
+                laser.style.display = 'none';
+            }, 500);
+        }
+
+        function removeBubble(bubble) {
+            const index = bubbles.indexOf(bubble);
+            if (index > -1) {
+                bubbles.splice(index, 1);
+            }
+            gameArea.removeChild(bubble);
+        }
+
+        function loseLife() {
+            lives--;
+            if (lives === 0) {
+                gameOver();
+            } else {
+                document.querySelector('#lives').children[lives].textContent = '';
+            }
+        }
+
+        function gameOver() {
+            clearInterval(gameInterval);
+            document.getElementById('game-over').style.display = 'flex';
+            document.getElementById('final-score').textContent = score;
+            // Here you would typically save the score and update the leaderboard
+        }
+
+        function updateScore() {
+            document.getElementById('current-score').textContent = score;
+        }
+
+        // Placeholder for leaderboard update, which would typically involve server interaction
+        function updateLeaderboard(name, score) {
+            // This function would update the leaderboard with the player's name and score
+        }
+
+        // Initial setup for the leaderboard
+        document.addEventListener('DOMContentLoaded', function () {
+            // Fetch or initialize leaderboard here
+        });
+    </script>
+</body>
+
+</html>

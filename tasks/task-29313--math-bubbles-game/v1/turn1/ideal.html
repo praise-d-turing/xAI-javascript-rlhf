@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Math Raindrops</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/water.css">
+    <style>
+        :root {
+            --difficulty-time: 10000ms;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(to right, #83a4d4, #b6fbff);
+            margin: 0;
+            overflow: hidden;
+        }
+
+        #app-name {
+            color: #ebd0b7;
+        }
+
+        #game-area {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+        }
+
+        .bubble {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 20px;
+            position: absolute;
+            height: 100px;
+            width: 100px;
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            border-radius: 50%;
+            background-color: white;
+            background: linear-gradient(to left, #7e94bf44, #88bfb044);
+            box-shadow: 2px 5px 5px rgba(0, 0, 0, 0.2);
+            animation: fall-down var(--difficulty-time) linear;
+        }
+
+        .bubble:before {
+            content: "";
+            position: absolute;
+            display: block;
+            top: 5px;
+            left: 7px;
+            height: 90px;
+            width: 90px;
+            border-radius: 50%;
+            background: #84b9bf;
+            opacity: 0.8;
+            overflow: hidden;
+            opacity: 0.2;
+        }
+
+        .bubble:after {
+            content: "";
+            position: absolute;
+            display: block;
+            top: 25px;
+            left: 70px;
+            height: 25px;
+            width: 9px;
+            border-radius: 50%;
+            background: white;
+            overflow: hidden;
+            opacity: 0.2;
+        }
+
+        .card {
+            border: 4px solid #44646c;
+            height: 400px;
+            width: 659px;
+            background: #577d7f;
+            border-radius: 15px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-around;
+            gap: -40px;
+
+        }
+
+        @keyframes fall-down {
+            from {
+                top: -100px;
+            }
+            to {
+                top: 100%;
+            }
+        }
+
+        #lives,
+        #score {
+            position: absolute;
+            top: 10px;
+            font-size: 18px;
+            color: white;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 5px 10px;
+            border-radius: 5px;
+        }
+
+        #lives {
+            left: 10px;
+        }
+
+        #score {
+            right: 10px;
+        }
+
+        #input-area {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+        }
+
+        #answer-input,
+        #submit-btn {
+            padding: 10px;
+            margin: 0 5px;
+        }
+
+        #submit-btn {
+            background-color: #4CAF50;
+            border: none;
+            color: white;
+            cursor: pointer;
+        }
+
+        #home-screen,
+        #game-over {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-size: 2em;
+            background: radial-gradient(circle, rgba(238,174,202,1) 0%, rgba(148,187,233,1) 100%);
+            background: #7ec3cb;
+        }
+
+        #leaderboard .close {
+            position: absolute;
+            right: 10px;
+            top: 10px;
+            font-weight: bold;
+            font-size: 20px;
+            cursor: pointer;
+            border: none;
+            background: transparent;
+            width: 20px;
+            height: 20px;
+            line-height: 20px;
+            text-align: center;
+            padding: 0;
+            display: inline-block;
+        }
+
+        .heart {
+            color: red;
+            font-size: 24px;
+        }
+
+        .laser {
+            position: absolute;
+            width: 5px;
+            /* Width of the laser */
+            height: 200px;
+            /* Length of the laser */
+            background: linear-gradient(to bottom, rgba(255, 0, 0, 0.8), rgba(255, 255, 0, 0.8));
+            background: #86ff5e;
+            box-shadow: 0 0 20px 10px #86ff5e;
+            border-radius: 2px;
+            transform-origin: top;
+            /* This makes it look like the laser shoots from the base */
+            opacity: 0;
+            transition: opacity 0.1s ease;
+        }
+
+    </style>
+</head>
+
+<body>
+    <div id="home-screen">
+        <div class="card">
+            <h1 id="app-name">Math Raindrops</h1>
+            <div style="display: flex; justify-content: center;">
+                <button onclick="startGame()">Start Game</button>
+                <select id="difficulty-selector">
+                    <option value="easy" selected>Easy</option>
+                    <option value="medium">Medium</option>
+                    <option value="hard">Hard</option>
+                </select>
+                <button onclick="showLeaderboard()">Leaderboard</button>
+            </div>
+        </div>
+        <dialog id="leaderboard">
+            <button class="close" onclick="hideLeaderboard()">&times;</button>
+            <h3>Leaderboard</h3>
+            <ul class="scores"></ul>
+            <!-- Leaderboard content will be dynamically added here -->
+        </dialog>
+    </div>
+    <div id="game-area" style="display: none;">
+        <div id="lives"><span class="heart">❤️</span><span class="heart">❤️</span><span class="heart">❤️</span></div>
+        <div id="score">Score: <span id="current-score">0</span></div>
+        <div id="input-area">
+            <input type="text" id="answer-input" placeholder="Enter answer"
+                onkeyup="if(event.key === 'Enter') submitAnswer()" autocomplete="off">
+            <button id="submit-btn" onclick="submitAnswer()">Submit</button>
+        </div>
+    </div>
+    <div id="game-over" style="display: none;">
+        <h2>Game Over!</h2>
+        <p>Your Score: <span id="final-score"></span></p>
+        <button onclick="location.reload()">Home</button>
+    </div>
+    <script>
+        let lives = 3;
+        let score = 0;
+        let difficultyTimes = {easy: 10e3, medium: 7.5e3, hard: 4e3};
+        let difficultyScores = {easy: 10, medium: 20, hard: 50};
+        /** @type {keyof difficulty} */
+        let currentDifficulty = 'easy';
+        let gameInterval;
+        let bubbles = [];
+        const gameArea = document.getElementById('game-area');
+        const homeScreen = document.getElementById('home-screen');
+        const leaderboard = document.getElementById('leaderboard');
+ 
+        const localstorageKey = 'math_bubbles_shooter_game';
+
+        function startGame() {
+            homeScreen.style.display = 'none';
+            gameArea.style.display = 'block';
+            startBubbles();
+            setTimeout(() => document.querySelector('#answer-input').focus());
+        }
+
+        function startBubbles() {
+            createBubble();
+            gameInterval = setInterval(() => {
+                if (bubbles.length < 5) createBubble();
+            }, 4000);
+        }
+
+        function createBubble() {
+            const bubble = document.createElement('div');
+            bubble.className = 'bubble';
+            bubble.style.left = `${Math.random() * (window.innerWidth - 100)}px`;
+            bubble.style.top = '0px';
+
+            const {num1, num2, operator: operation, correctAnswer} = generateQuestion();
+            bubble.textContent = `${num1} ${operation} ${num2}`;
+            bubble.dataset.answer = correctAnswer;
+
+            gameArea.appendChild(bubble);
+            bubbles.push(bubble);
+
+            setTimeout(() => {
+                if (!bubble.dataset.answered) {
+                    loseLife();
+                    removeBubble(bubble);
+                }
+            }, difficultyTimes[currentDifficulty]);
+        }
+
+        function generateQuestion() {
+            const operators = ['+', '-', '*', '/'];
+            const operator = operators[Math.floor(Math.random() * operators.length)];
+            let num1 = Math.floor(Math.random() * 10) + 10;
+            let num2 = Math.floor(Math.random() * 10) + 10;
+
+            if (operator === '/') {
+                while (num1 % num2 !== 0) {
+                    num1 = Math.floor(Math.random() * 90) + 10;
+                    num2 = Math.floor(Math.random() * 90) + 10;
+                }
+            }
+
+            const correctAnswer = eval(`${num1} ${operator} ${num2}`);
+
+            return { num1, num2, operator, correctAnswer };
+        }
+
+        function submitAnswer() {
+            const input = document.getElementById('answer-input');
+            const answer = Number(input.value);
+            const bubble = bubbles.find(b => Number(b.dataset.answer) === answer);
+            if (bubble) {
+                shootBubble(bubble);
+                score += difficultyScores[currentDifficulty];
+                updateScore();
+            }
+            input.value = '';
+        }
+
+        function shootBubble(bubble) {
+            bubble.dataset.answered = 1;
+            const bubblePos = bubble.getBoundingClientRect();
+            const bubbleRadius = bubblePos.width / 2;
+            shootLaser(window.innerWidth/2, window.innerHeight, bubblePos.x + bubbleRadius, bubblePos.y + bubbleRadius);
+            setTimeout(() => {
+                removeBubble(bubble);
+            }, 500);
+        }
+
+
+        function shootLaser(startX, startY, targetX, targetY) {
+            const laser = document.createElement('div');
+            laser.classList.add('laser');
+            document.body.append(laser);
+
+            // Calculate the distance between start and target point
+            const dx = targetX - startX;
+            const dy = targetY - startY;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+
+            // Calculate angle (in radians) to rotate the laser div
+            const baseAngle = Math.atan2(dy, dx) * (180 / Math.PI);
+            const angle = baseAngle + 270;
+
+            // Position and rotate the laser at the starting point
+            laser.style.left = `${startX}px`;
+            laser.style.top = `${startY}px`;
+            laser.style.height = `${distance}px`; // Adjust the length of the laser
+            laser.style.transform = `rotate(${angle}deg)`;
+
+            // Show the laser with a fade-in effect
+            laser.style.opacity = 1;
+
+            const animationDuration = 200;
+            // Animate the laser traveling from start to target
+            laser.animate(
+                [
+                    {height: 0},
+                    {height: distance + 'px'},
+                ],
+                {
+                    duration: animationDuration,
+                    easing: 'ease-out',
+                }
+            );
+
+            // Hide the laser after a brief moment (simulates the laser disappearing)
+            setTimeout(() => laser.remove(), animationDuration + 100);
+        }
+
+        function removeBubble(bubble) {
+            const index = bubbles.indexOf(bubble);
+            if (index > -1) {
+                bubbles.splice(index, 1);
+            }
+            bubble.remove();
+        }
+
+        function loseLife() {
+            document.querySelector('#lives').lastElementChild.remove();
+            lives--;
+            if (lives === 0) {
+                setTimeout(gameOver, 500);
+            }
+        }
+
+        function gameOver() {
+            clearInterval(gameInterval);
+            document.getElementById('game-over').style.display = '';
+            document.getElementById('final-score').textContent = score;
+            bubbles.forEach(bubble => bubble.remove());
+            updateLeaderboard(
+                prompt(`What name should your score be saved under?`),
+                score
+            );
+        }
+
+        function updateScore() {
+            document.getElementById('current-score').textContent = score;
+        }
+
+        function getAppData() {
+            return JSON.parse(localStorage.getItem(localstorageKey)) || {leaderboard: []};
+        }
+        function saveAppData(appData) {
+            localStorage.setItem(localstorageKey, JSON.stringify(appData))
+        }
+
+        // Placeholder for leaderboard update, which would typically involve server interaction
+        function updateLeaderboard(name, score) {
+            const appData = getAppData();
+            appData.leaderboard.push({name, score})
+            appData.leaderboard.sort((a, b) => b.score - a.score);
+            appData.leaderboard.splice(10);
+            saveAppData(appData);
+        }
+
+        function showLeaderboard() {
+            leaderboard.showModal();
+            leaderboard.querySelector('.scores').innerHTML = getAppData().leaderboard.map(({name, score}) => `<li>${name}: ${score}</li>`).join('')
+        }
+
+        function hideLeaderboard() {
+            leaderboard.close();
+        }
+
+        (function watchDifficulty() {
+            const difficultySelector = document.querySelector('#difficulty-selector');
+            difficultySelector.onchange = () => {
+                currentDifficulty = difficultySelector.value;
+                document.documentElement.style.setProperty('--difficulty-time', difficultyTimes[currentDifficulty] + 'ms');
+            }
+        })();
+
+    </script>
+</body>
+
+</html>
